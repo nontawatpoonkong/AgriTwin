@@ -129,4 +129,4 @@ Base URL ตอนพัฒนา: `http://localhost:8000` และดูเอ
 - **เพิ่ม `sensor_type` ใหม่**: เพิ่มใน `SENSOR_CATALOG` + `app/lib/core/sensor_catalog.dart` + ตารางข้อ 3 ยังใช้ v1.0 ได้ (เป็นการขยายที่ไม่ทำให้ผู้ส่งเดิมพัง)
 - **เพิ่ม field แบบไม่บังคับ** (เช่น `link.rssi`, `link.snr` สำหรับทดสอบระยะ LoRa): ใช้ `schema_version: "1.1"` และ backend ต้องรับทั้ง 1.0 และ 1.1
 - **เปลี่ยนความหมายหรือลบ field**: ใช้ `2.0` และเปิด topic/handler ใหม่ควบคู่ไปจนกว่าทุกอุปกรณ์จะย้าย
-- ทุกครั้งที่เปลี่ยน: รัน `python -m app.contract > ../contracts/telemetry.v1.schema.json` (ใน `backend/`) และอัปเดตเอกสารนี้
+- ทุกครั้งที่เปลี่ยน: รัน `python -m app.contract --write` (ใน `backend/`) และอัปเดตเอกสารนี้ ห้ามใช้ `>` redirect เพราะ PowerShell 5.1 บน Windows จะบันทึกไฟล์เป็น UTF-16 หรือ UTF-8 แบบมี BOM ซึ่ง JSON parser อ่านไม่ได้

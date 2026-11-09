@@ -2,15 +2,18 @@
 
 This module is the single source of truth for the telemetry payload.
 Docs: docs/DATA_CONTRACT.md. JSON Schema: contracts/telemetry.v1.schema.json
-(regenerate with: python -m app.contract > ../contracts/telemetry.v1.schema.json)
+(regenerate with: cd backend; python -m app.contract --write)
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -123,5 +126,36 @@ def device_id_from_topic(topic: str) -> str | None:
     return None
 
 
+# Committed JSON Schema for the hardware/gateway team.
+SCHEMA_PATH = Path(__file__).resolve().parents[2] / "contracts" / "telemetry.v1.schema.json"
+
+
+def schema_json() -> str:
+    """JSON Schema text as committed: 2-space indent, non-ASCII kept, trailing newline."""
+    return json.dumps(TelemetryV1.model_json_schema(), indent=2, ensure_ascii=False) + "\n"
+
+
+def write_schema(path: Path = SCHEMA_PATH) -> bool:
+    """Write the schema as UTF-8 without BOM, LF line endings. Return True if the file changed.
+
+    Use this instead of shell redirection: Windows PowerShell 5.1 re-encodes redirected output
+    as UTF-16 (or UTF-8 with a BOM), which json.loads cannot read.
+    """
+    text = schema_json()
+    if path.exists() and path.read_text(encoding="utf-8", errors="replace").replace("\r\n", "\n") == text:
+        return False
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return True
+
+
 if __name__ == "__main__":
-    print(json.dumps(TelemetryV1.model_json_schema(), indent=2, ensure_ascii=False))
+    parser = argparse.ArgumentParser(
+        prog="python -m app.contract",
+        description="Print the telemetry v1 JSON Schema, or write it to contracts/.",
+    )
+    parser.add_argument("--write", action="store_true", help=f"write {SCHEMA_PATH.name} (UTF-8, no BOM, LF)")
+    if parser.parse_args().write:
+        changed = write_schema()
+        print(("updated: " if changed else "already up to date: ") + str(SCHEMA_PATH))
+    else:
+        sys.stdout.write(schema_json())

@@ -5,6 +5,9 @@
 ### Added
 - `CLAUDE.md` ที่ import `AGENTS.md` ด้วยบรรทัด `@AGENTS.md` เพื่อให้ Claude Code โหลดกติกาชุดเดียวกับ Codex ทุกครั้ง (แก้กติกาที่ `AGENTS.md` ที่เดียว)
 
+### Fixed
+- คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
+
 ## v0.1.0 — 2026-11-09 — Vertical Slice 1 (simulated data)
 
 เส้นทางข้อมูลแรกที่ทำงานครบ: simulator → MQTT → FastAPI ingest → PostgreSQL → REST → Flutter Dashboard
