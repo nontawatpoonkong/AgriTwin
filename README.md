@@ -81,7 +81,6 @@ backend\.venv\Scripts\python simulator\simulate.py --devices 2 --interval 10
 **หน้าต่าง 4 — Flutter**
 ```powershell
 cd app
-flutter create --platforms=web,android,windows --project-name agritwin_app .   # ครั้งแรกเท่านั้น จะไม่เขียนทับ lib/ และ test/
 flutter pub get
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
 ```

@@ -14,7 +14,8 @@
 - [x] Backend tests 27 ข้อ (contract + ingest/API + migration down/up) ผ่านบน Linux ด้วย PostgreSQL 16
 - [x] Flutter Dashboard (ธีมกลาง, loading/empty/error/stale, ป้ายข้อมูลจำลอง, ค่า suspect) + tests
 - [x] Git: แยก branch ตามส่วนงานและ merge เข้า `main` พร้อมเตรียม tag `v0.1.0` (รายการที่ยังไม่ทดสอบอยู่ใน `CHANGELOG.md`)
-- [ ] **V-1 ยังไม่ได้คอมไพล์ Flutter** (Flutter SDK เข้าถึงไม่ได้ในสภาพแวดล้อมที่ใช้สร้าง) ต้องรันบน Windows ก่อนทำงานอื่น
+- [x] Flutter บน Windows: `flutter test` ผ่าน 9/9 และแก้ info จาก `flutter analyze` แล้ว
+- [ ] **V-1 (ส่วนที่เหลือ)** รัน `flutter analyze` ซ้ำให้ได้ 0 issue และ `flutter run -d chrome` แสดงค่าจาก simulator
 - [ ] **V-3 รัน `docker compose up` จริงบน Windows** ยืนยัน healthcheck และการสร้าง `agritwin_test` จาก init script
 
 ## ลำดับงานแนะนำ (ช่วงเวลาที่ยังใช้ Claude ได้อีกราว 6 วัน และสอบหัวข้อ 14 พ.ย.)
@@ -30,9 +31,9 @@
 
 ## P0 — ยืนยัน Slice 1
 
-- [ ] **V-1 Flutter compile & test บน Windows**
-  ทำ: `flutter create --platforms=web,android,windows --project-name agritwin_app .` ใน `app/` จากนั้น `flutter pub get`, `flutter analyze`, `flutter test`
-  เสร็จเมื่อ: analyze ไม่มี issue, test ผ่านทั้งหมด และ `flutter run -d chrome` แสดงค่าจาก simulator ถ้ามี error ให้แก้ในโค้ดโดยไม่เปลี่ยน API contract
+- [ ] **V-1 Flutter run บน Windows** (platform folders อยู่ใน repo แล้ว ไม่ต้องรัน `flutter create` อีก)
+  ทำ: `cd app` → `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000`
+  เสร็จเมื่อ: analyze ได้ 0 issue (test ผ่านแล้ว 9/9) และหน้า Dashboard แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง"
 - [ ] **V-2 หลักฐาน S1**
   ทำ: บันทึก screenshot ของ Dashboard, output ของ `pytest -v`, output ของ smoke test และ `ingest_counts` จาก /health
   เสร็จเมื่อ: ไฟล์หลักฐานอยู่ใน `docs/evidence/s1/`
