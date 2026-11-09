@@ -1,0 +1,25 @@
+# Secrets — never commit real environment files
+.env
+*.env
+!.env.example
+!*.env.example
+*.bundle
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Flutter / Dart
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+*.iml
+.idea/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
