@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "message_id": "node-01-1762693260-124",
+  "device_id": "node-01",
+  "seq": 124,
+  "ts": "2026-11-09T13:01:00Z",
+  "source": "simulator",
+  "readings": [
+    { "sensor_type": "soil_temperature", "value": 81.3, "unit": "°F" }
+  ]
+}

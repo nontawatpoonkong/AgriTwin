@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "Reading": {
+      "additionalProperties": false,
+      "properties": {
+        "sensor_type": {
+          "description": "Key from the sensor catalog, e.g. soil_moisture",
+          "title": "Sensor Type",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sensor_type",
+        "value",
+        "unit"
+      ],
+      "title": "Reading",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Payload published to agritwin/{env}/devices/{device_id}/telemetry.",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "message_id": {
+      "description": "Idempotency key, unique per message",
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Message Id",
+      "type": "string"
+    },
+    "device_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{1,63}$",
+      "title": "Device Id",
+      "type": "string"
+    },
+    "seq": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Node frame counter, optional",
+      "title": "Seq"
+    },
+    "ts": {
+      "description": "Measurement time, ISO 8601 with timezone (UTC recommended)",
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "simulator",
+        "gateway",
+        "test"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "readings": {
+      "items": {
+        "$ref": "#/$defs/Reading"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Readings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "message_id",
+    "device_id",
+    "ts",
+    "source",
+    "readings"
+  ],
+  "title": "TelemetryV1",
+  "type": "object"
+}
