@@ -1,0 +1,38 @@
+# Local development services. The API and Flutter run natively (faster reload, easier debugging).
+# First time: copy infra/.env.example to infra/.env and set a password (infra/.env is NOT committed).
+# Start:  docker compose -f infra/docker-compose.yml up -d
+# Stop:   docker compose -f infra/docker-compose.yml down        (data is kept in the volume)
+# Reset:  docker compose -f infra/docker-compose.yml down -v     (DELETES all data)
+name: agritwin
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-agritwin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env (copy infra/.env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:-agritwin}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"   # host 5433 avoids a clash with a locally installed PostgreSQL
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "${MQTT_HOST_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mosquitto-data:
