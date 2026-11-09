@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "message_id": "node-01-1762693200-123",
+  "device_id": "node-01",
+  "seq": 123,
+  "ts": "2026-11-09T13:00:00Z",
+  "source": "simulator",
+  "readings": [
+    { "sensor_type": "soil_moisture", "value": 41.2, "unit": "%" },
+    { "sensor_type": "soil_temperature", "value": 27.4, "unit": "°C" },
+    { "sensor_type": "air_temperature", "value": 31.0, "unit": "°C" },
+    { "sensor_type": "air_humidity", "value": 68.5, "unit": "%RH" },
+    { "sensor_type": "rainfall", "value": 0.0, "unit": "mm" },
+    { "sensor_type": "wind_speed", "value": 2.3, "unit": "m/s" }
+  ]
+}
