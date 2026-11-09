@@ -4,8 +4,10 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Development only: the local API is plain HTTP (http://10.0.2.2:8000 from the
-         emulator, or the PC's LAN IP from a phone). Release builds do not merge this
-         file, so they keep Android's default of blocking cleartext traffic. -->
+    <!-- Development only: allows plain HTTP to the local API (http://10.0.2.2:8000 from the
+         emulator, or the PC's LAN IP) for Android's own networking, e.g. WebView or
+         platform HTTP clients. Dart's HTTP client (package:http on dart:io) does not check
+         this flag, so even release builds can reach an http:// API_BASE_URL: use https
+         in production. -->
     <application android:usesCleartextTraffic="true"/>
 </manifest>

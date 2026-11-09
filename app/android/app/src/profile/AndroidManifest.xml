@@ -4,7 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Development only (profile builds are used to measure performance against the
-         local plain-HTTP API). Release builds keep cleartext traffic blocked. -->
+    <!-- Same as the debug manifest: plain HTTP to the local API for Android's own
+         networking while profiling. Dart's HTTP client does not check this flag. -->
     <application android:usesCleartextTraffic="true"/>
 </manifest>
