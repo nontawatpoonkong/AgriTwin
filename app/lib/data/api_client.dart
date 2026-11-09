@@ -52,11 +52,25 @@ class AgriTwinApi implements DashboardSource {
 
   Future<http.Response> _get(Uri uri) async {
     try {
-      return await _client.get(uri).timeout(_timeout);
+      return await _getRetryingOnce(uri);
     } on TimeoutException {
       throw const ApiException('เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)');
     } on Object catch (e) {
       throw ApiException('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ($e)');
+    }
+  }
+
+  /// GET is idempotent, so one connection-level failure is retried on a new connection.
+  ///
+  /// The app polls every 5 s and uvicorn closes idle keep-alive connections after 5 s, so a
+  /// poll can go out on a connection the server is closing ("Connection closed before full
+  /// header was received"). Browsers retry this case on their own; dart:io (Android, desktop)
+  /// does not. Timeouts and HTTP error statuses are not retried.
+  Future<http.Response> _getRetryingOnce(Uri uri) async {
+    try {
+      return await _client.get(uri).timeout(_timeout);
+    } on http.ClientException {
+      return await _client.get(uri).timeout(_timeout);
     }
   }
 
