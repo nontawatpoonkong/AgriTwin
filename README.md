@@ -84,7 +84,8 @@ cd app
 flutter pub get
 flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
 ```
-Android emulator ใช้ `API_BASE_URL=http://10.0.2.2:8000` ส่วนมือถือจริงให้ใช้ IP ของ PC ในวง LAN และอนุญาตพอร์ต 8000 ใน Windows Firewall (ดู APP-0)
+Android emulator ใช้ `API_BASE_URL=http://10.0.2.2:8000` ส่วนมือถือจริงให้รัน uvicorn ด้วย `--host 0.0.0.0` (ค่าเริ่มต้นฟังแค่ `127.0.0.1`) แล้วใช้ IP ของ PC ในวง LAN และอนุญาตพอร์ต 8000 ใน Windows Firewall
+build แบบ debug/profile อนุญาต HTTP ธรรมดา (cleartext) เพื่อคุยกับ API ตอนพัฒนา ส่วน build แบบ release ยังบล็อก cleartext ตามค่าเริ่มต้นของ Android (ดู APP-0)
 
 ## ทดสอบทีละขั้น
 

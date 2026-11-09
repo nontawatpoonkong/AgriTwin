@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Development only: the local API is plain HTTP (http://10.0.2.2:8000 from the
+         emulator, or the PC's LAN IP from a phone). Release builds do not merge this
+         file, so they keep Android's default of blocking cleartext traffic. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

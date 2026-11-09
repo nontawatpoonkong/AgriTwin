@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Development only (profile builds are used to measure performance against the
+         local plain-HTTP API). Release builds keep cleartext traffic blocked. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

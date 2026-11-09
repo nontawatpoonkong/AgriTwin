@@ -4,9 +4,12 @@
 
 ### Added
 - `CLAUDE.md` ที่ import `AGENTS.md` ด้วยบรรทัด `@AGENTS.md` เพื่อให้ Claude Code โหลดกติกาชุดเดียวกับ Codex ทุกครั้ง (แก้กติกาที่ `AGENTS.md` ที่เดียว)
+- Android: build แบบ debug/profile อนุญาต cleartext HTTP (`usesCleartextTraffic` ใน manifest ของ debug/profile) เพื่อคุยกับ API ตอนพัฒนา เช่น `http://10.0.2.2:8000` จาก emulator ส่วน release ยังบล็อก cleartext ตามค่าเริ่มต้นของ Android (APP-0)
 
 ### Fixed
 - คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
+- Android: build แบบ release ไม่มี permission `INTERNET` (เดิมมีแค่ใน manifest ของ debug/profile) จึงเรียก API ไม่ได้ เพิ่มไว้ใน `main/AndroidManifest.xml` แล้ว (APP-0)
+- README: ขั้นตอนทดสอบกับมือถือจริงขาด `--host 0.0.0.0` ของ uvicorn (ค่าเริ่มต้นฟังแค่ `127.0.0.1`)
 
 ### ทดสอบแล้วบน Windows (9 พ.ย. 2569: Windows 11, Python 3.12.10, Docker Engine 29.9.2 + Compose v5.6.1, Flutter 3.41.6)
 - `docker compose up -d`: `postgres:16` healthy, `eclipse-mosquitto` 2.1.2 ทำงาน และ init script สร้าง `agritwin_test` แล้ว (V-3)
