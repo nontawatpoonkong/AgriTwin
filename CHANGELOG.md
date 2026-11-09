@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `CLAUDE.md` ที่ import `AGENTS.md` ด้วยบรรทัด `@AGENTS.md` เพื่อให้ Claude Code โหลดกติกาชุดเดียวกับ Codex ทุกครั้ง (แก้กติกาที่ `AGENTS.md` ที่เดียว)
+
 ## v0.1.0 — 2026-11-09 — Vertical Slice 1 (simulated data)
 
 เส้นทางข้อมูลแรกที่ทำงานครบ: simulator → MQTT → FastAPI ingest → PostgreSQL → REST → Flutter Dashboard
