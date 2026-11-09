@@ -43,4 +43,51 @@ void main() {
     );
     await expectLater(api.fetchDashboard(), throwsA(isA<ApiException>()));
   });
+
+  test('a dropped connection is retried once and the data still arrives', () async {
+    var calls = 0;
+    final api = AgriTwinApi(
+      baseUrl: 'http://api.test',
+      client: MockClient((_) async {
+        calls++;
+        if (calls == 1) {
+          throw http.ClientException('Connection closed before full header was received');
+        }
+        return http.Response.bytes(utf8.encode(jsonEncode(dashboardJson())), 200);
+      }),
+    );
+
+    final data = await api.fetchDashboard();
+
+    expect(calls, 2);
+    expect(data.devices.single.deviceId, 'sim-node-01');
+  });
+
+  test('a connection that keeps failing becomes ApiException after one retry', () async {
+    var calls = 0;
+    final api = AgriTwinApi(
+      baseUrl: 'http://api.test',
+      client: MockClient((_) async {
+        calls++;
+        throw http.ClientException('Connection refused');
+      }),
+    );
+
+    await expectLater(api.fetchDashboard(), throwsA(isA<ApiException>()));
+    expect(calls, 2);
+  });
+
+  test('an HTTP error status is not retried', () async {
+    var calls = 0;
+    final api = AgriTwinApi(
+      baseUrl: 'http://api.test',
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('boom', 500);
+      }),
+    );
+
+    await expectLater(api.fetchDashboard(), throwsA(isA<ApiException>()));
+    expect(calls, 1);
+  });
 }

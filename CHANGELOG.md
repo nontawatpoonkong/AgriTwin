@@ -10,6 +10,7 @@
 - คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
 - Android: build แบบ release ไม่มี permission `INTERNET` (เดิมมีแค่ใน manifest ของ debug/profile) จึงเรียก API ไม่ได้และขึ้น `SocketException: Operation not permitted` เพิ่มไว้ใน `main/AndroidManifest.xml` แล้ว (APP-0)
 - README: ขั้นตอนทดสอบกับมือถือจริงขาด `--host 0.0.0.0` ของ uvicorn (ค่าเริ่มต้นฟังแค่ `127.0.0.1`)
+- แอปบน Android/desktop ขึ้นแถบ "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (Connection closed before full header was received)" เป็นครั้งคราว เพราะรอบ poll 5 วินาทีชนกับเวลาที่ uvicorn ปิด keep-alive connection (5 วินาที) ตอนนี้ `AgriTwinApi` retry คำขอ GET หนึ่งครั้งเมื่อเกิด error ระดับ connection แต่ไม่ retry กรณี timeout หรือ HTTP error (เพิ่ม test 5 ข้อ รวม test ที่ใช้ server จริงตัด connection ก่อนส่ง header)
 
 ### ทดสอบแล้วบน Windows (9 พ.ย. 2569: Windows 11, Python 3.12.10, Docker Engine 29.9.2 + Compose v5.6.1, Flutter 3.41.6)
 - `docker compose up -d`: `postgres:16` healthy, `eclipse-mosquitto` 2.1.2 ทำงาน และ init script สร้าง `agritwin_test` แล้ว (V-3)
@@ -18,7 +19,7 @@
 - Android emulator (Android 17 / API 37, AVD `AgriTwin_API_37`) กับ `API_BASE_URL=http://10.0.2.2:8000`: APK ทั้ง debug และ release หลังแก้ APP-0 แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" ส่วน release ก่อนแก้เรียก API ไม่ได้ (APP-0)
 
 ### ข้อจำกัดที่พบเพิ่ม
-- ดูหัวข้อ "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`: `localhost` ช้าบน Windows, มือถือจริงต้องรัน uvicorn ด้วย `--host 0.0.0.0`, พอร์ต Docker เปิดบนทุก interface, deprecation warning ของ Starlette, แอปบน Android ขึ้น "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้" เป็นครั้งคราวเพราะ keep-alive ชนกัน และ release build ยังใช้ `http://` ได้
+- ดูหัวข้อ "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`: `localhost` ช้าบน Windows, มือถือจริงต้องรัน uvicorn ด้วย `--host 0.0.0.0`, พอร์ต Docker เปิดบนทุก interface, deprecation warning ของ Starlette และ release build ยังใช้ `http://` ได้
 
 ## v0.1.0 — 2026-11-09 — Vertical Slice 1 (simulated data)
 

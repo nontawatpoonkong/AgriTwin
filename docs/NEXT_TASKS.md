@@ -20,10 +20,9 @@
 - [x] **V-1** `flutter analyze` ได้ 0 issue และ `flutter run -d chrome` แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" (เจ้าของโปรเจกต์ตรวจหน้าจอแล้ว)
 - [x] **V-3** `docker compose up` บน Windows: postgres healthy, Mosquitto ทำงาน และ init script สร้าง `agritwin_test` แล้ว
 - [x] Backend บน Windows (Python 3.12.10): `alembic upgrade head`, `pytest` ผ่าน 29 ข้อ, smoke test และ simulator `--bad`/`--duplicate` ผ่าน
+- [x] แก้แถบ "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (Connection closed before full header was received)" ที่ขึ้นเป็นครั้งคราวบน Android: รอบ poll 5 วินาทีชนกับเวลาที่ uvicorn ปิด keep-alive connection (`--timeout-keep-alive` ค่าเริ่มต้น 5 วินาที) ตอนนี้ `AgriTwinApi` retry GET หนึ่งครั้งบน connection ใหม่ (web ไม่เคยเจอปัญหานี้เพราะ browser retry เอง)
 
 ## ปัญหาที่รู้แล้ว (พบตอนยืนยันบน Windows และ Android 9 พ.ย. 2569)
-
-- **แถบ "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้" ขึ้นเป็นครั้งคราวบน Android:** แอป poll ทุก 5 วินาที ซึ่งเท่ากับเวลาที่ uvicorn ปิด keep-alive connection ที่ว่างอยู่ (`--timeout-keep-alive` ค่าเริ่มต้น 5 วินาที) บางรอบแอปจึงส่ง request บน connection ที่ server กำลังปิด แล้วได้ `ClientException: Connection closed before full header was received` (เจอบน emulator และสคริปต์ทดสอบยืนยันว่า uvicorn ปิด connection ที่ว่างเกิน 5 วินาทีจริง) ส่วน web ไม่เจอเพราะ browser retry ให้เอง ทางแก้ที่เสนอคือให้ `AgriTwinApi` retry คำขอ GET หนึ่งครั้งเมื่อ connection ถูกปิด หรือรัน uvicorn ด้วย `--timeout-keep-alive` ที่นานกว่ารอบ poll
 - **release build ยังเรียก `http://` ได้:** HTTP client ของ Dart ไม่ได้อ่านนโยบาย cleartext ของ Android ตอน deploy จริง (OPS-1) จึงต้องตั้ง `API_BASE_URL` เป็น `https://`
 
 - **`localhost` ช้าบน Windows:** `localhost` resolve เป็น `::1` ก่อน แต่ uvicorn ฟังแค่ IPv4 โปรแกรมที่ไม่ใช่ browser (Python, PowerShell) จึงเสียเวลาราว 2 วินาทีต่อ connection ใหม่ ถ้าเรียกจากสคริปต์ให้ใช้ `http://127.0.0.1:8000` (Chrome ไม่มีปัญหานี้)
