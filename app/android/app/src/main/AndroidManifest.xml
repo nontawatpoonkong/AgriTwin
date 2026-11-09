@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Every build type calls the AgriTwin REST API. The debug/profile manifests also
+         declare this for the Flutter tool, but release builds only get it from here
+         (without it they fail with "SocketException: Operation not permitted"). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="agritwin_app"
         android:name="${applicationName}"

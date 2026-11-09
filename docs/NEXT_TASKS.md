@@ -21,10 +21,13 @@
 - [x] **V-3** `docker compose up` บน Windows: postgres healthy, Mosquitto ทำงาน และ init script สร้าง `agritwin_test` แล้ว
 - [x] Backend บน Windows (Python 3.12.10): `alembic upgrade head`, `pytest` ผ่าน 29 ข้อ, smoke test และ simulator `--bad`/`--duplicate` ผ่าน
 
-## ปัญหาที่รู้แล้ว (พบตอนยืนยันบน Windows 9 พ.ย. 2569)
+## ปัญหาที่รู้แล้ว (พบตอนยืนยันบน Windows และ Android 9 พ.ย. 2569)
+
+- **แถบ "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้" ขึ้นเป็นครั้งคราวบน Android:** แอป poll ทุก 5 วินาที ซึ่งเท่ากับเวลาที่ uvicorn ปิด keep-alive connection ที่ว่างอยู่ (`--timeout-keep-alive` ค่าเริ่มต้น 5 วินาที) บางรอบแอปจึงส่ง request บน connection ที่ server กำลังปิด แล้วได้ `ClientException: Connection closed before full header was received` (เจอบน emulator และสคริปต์ทดสอบยืนยันว่า uvicorn ปิด connection ที่ว่างเกิน 5 วินาทีจริง) ส่วน web ไม่เจอเพราะ browser retry ให้เอง ทางแก้ที่เสนอคือให้ `AgriTwinApi` retry คำขอ GET หนึ่งครั้งเมื่อ connection ถูกปิด หรือรัน uvicorn ด้วย `--timeout-keep-alive` ที่นานกว่ารอบ poll
+- **release build ยังเรียก `http://` ได้:** HTTP client ของ Dart ไม่ได้อ่านนโยบาย cleartext ของ Android ตอน deploy จริง (OPS-1) จึงต้องตั้ง `API_BASE_URL` เป็น `https://`
 
 - **`localhost` ช้าบน Windows:** `localhost` resolve เป็น `::1` ก่อน แต่ uvicorn ฟังแค่ IPv4 โปรแกรมที่ไม่ใช่ browser (Python, PowerShell) จึงเสียเวลาราว 2 วินาทีต่อ connection ใหม่ ถ้าเรียกจากสคริปต์ให้ใช้ `http://127.0.0.1:8000` (Chrome ไม่มีปัญหานี้)
-- **มือถือจริงต้องเปิด host ของ API:** uvicorn ค่าเริ่มต้นฟังแค่ `127.0.0.1` ถ้าจะทดสอบกับมือถือจริงใน LAN ต้องรันด้วย `--host 0.0.0.0` และเปิดพอร์ต 8000 ใน Windows Firewall (emulator ใช้ `10.0.2.2` ได้เลย)
+- **มือถือจริงต้องเปิด host ของ API:** uvicorn ค่าเริ่มต้นฟังแค่ `127.0.0.1` ถ้าจะทดสอบกับมือถือจริงใน LAN ต้องรันด้วย `--host 0.0.0.0` และเปิดพอร์ต 8000 ใน Windows Firewall (emulator ใช้ `10.0.2.2` ได้เลย) เขียนขั้นตอนไว้ใน README แล้ว
 - **Docker เปิดพอร์ตบนทุก interface:** 1883 และ 5433 ผูกกับ `0.0.0.0` เครื่องอื่นใน LAN จึงส่งข้อความเข้า Mosquitto แบบ anonymous ได้จนกว่าจะทำ BE-3 (หรือผูกพอร์ตกับ `127.0.0.1` ใน compose ระหว่าง dev)
 - **pytest warning:** Starlette 1.10 (dependency ทางอ้อมที่ไม่ได้ pin) เตือนว่าการใช้ `httpx` กับ `TestClient` เลิกแนะนำแล้ว ควรพิจารณา pin `starlette` หรือย้ายตามคำแนะนำก่อนที่ test จะพัง
 - **ไฟล์ generated ขึ้น modified:** `flutter pub get` เขียน `app/windows/flutter/generated_*` ใหม่ด้วย LF ทำให้ `git status` ขึ้น modified ทั้งที่เนื้อหาไม่เปลี่ยน แก้ได้ด้วย rule ใน `.gitattributes`
@@ -49,9 +52,10 @@
 - [ ] **V-2 หลักฐาน S1**
   ทำ: บันทึก screenshot ของ Dashboard, output ของ `pytest -v`, output ของ smoke test และ `ingest_counts` จาก /health
   เสร็จเมื่อ: ไฟล์หลักฐานอยู่ใน `docs/evidence/s1/`
-- [ ] **APP-0 Android: อนุญาต HTTP ในเครือข่ายท้องถิ่น**
+- [x] **APP-0 Android: อนุญาต HTTP ในเครือข่ายท้องถิ่น**
   ทำ: เพิ่ม `android:usesCleartextTraffic="true"` ใน `android/app/src/main/AndroidManifest.xml` (เฉพาะช่วง dev) และตรวจว่ามี permission `INTERNET`
   เสร็จเมื่อ: Android emulator ใช้ `--dart-define=API_BASE_URL=http://10.0.2.2:8000` แล้วเห็นข้อมูล
+  ผล (9 พ.ย. 2569): ใส่ `INTERNET` ใน `main/AndroidManifest.xml` และใส่ `usesCleartextTraffic` เฉพาะใน manifest ของ `debug`/`profile` (แทนการใส่ใน main) แล้วทดสอบบน emulator Android 17 (API 37) ครบ 4 แบบ: debug ทั้งก่อนและหลังแก้แสดงข้อมูลได้, release ก่อนแก้ขึ้น `SocketException: Operation not permitted` ส่วน release หลังแก้แสดงข้อมูลได้ สรุปว่าส่วนที่จำเป็นจริงคือ `INTERNET` เพราะ HTTP client ของ Dart ไม่ได้อ่านค่า cleartext ของ Android
 
 ## UI
 
