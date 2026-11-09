@@ -17,8 +17,17 @@
 - [x] Flutter บน Windows: `flutter test` ผ่าน 9/9 และแก้ info จาก `flutter analyze` แล้ว
 - [x] `CLAUDE.md` import `AGENTS.md` เพื่อให้ Claude Code ใช้กติกาเดียวกับ Codex
 - [x] แก้คำสั่ง regenerate JSON Schema ให้ใช้บน Windows PowerShell ได้ (`python -m app.contract --write`)
-- [ ] **V-1 (ส่วนที่เหลือ)** รัน `flutter analyze` ซ้ำให้ได้ 0 issue และ `flutter run -d chrome` แสดงค่าจาก simulator
-- [ ] **V-3 รัน `docker compose up` จริงบน Windows** ยืนยัน healthcheck และการสร้าง `agritwin_test` จาก init script
+- [x] **V-1** `flutter analyze` ได้ 0 issue และ `flutter run -d chrome` แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" (เจ้าของโปรเจกต์ตรวจหน้าจอแล้ว)
+- [x] **V-3** `docker compose up` บน Windows: postgres healthy, Mosquitto ทำงาน และ init script สร้าง `agritwin_test` แล้ว
+- [x] Backend บน Windows (Python 3.12.10): `alembic upgrade head`, `pytest` ผ่าน 29 ข้อ, smoke test และ simulator `--bad`/`--duplicate` ผ่าน
+
+## ปัญหาที่รู้แล้ว (พบตอนยืนยันบน Windows 9 พ.ย. 2569)
+
+- **`localhost` ช้าบน Windows:** `localhost` resolve เป็น `::1` ก่อน แต่ uvicorn ฟังแค่ IPv4 โปรแกรมที่ไม่ใช่ browser (Python, PowerShell) จึงเสียเวลาราว 2 วินาทีต่อ connection ใหม่ ถ้าเรียกจากสคริปต์ให้ใช้ `http://127.0.0.1:8000` (Chrome ไม่มีปัญหานี้)
+- **มือถือจริงต้องเปิด host ของ API:** uvicorn ค่าเริ่มต้นฟังแค่ `127.0.0.1` ถ้าจะทดสอบกับมือถือจริงใน LAN ต้องรันด้วย `--host 0.0.0.0` และเปิดพอร์ต 8000 ใน Windows Firewall (emulator ใช้ `10.0.2.2` ได้เลย)
+- **Docker เปิดพอร์ตบนทุก interface:** 1883 และ 5433 ผูกกับ `0.0.0.0` เครื่องอื่นใน LAN จึงส่งข้อความเข้า Mosquitto แบบ anonymous ได้จนกว่าจะทำ BE-3 (หรือผูกพอร์ตกับ `127.0.0.1` ใน compose ระหว่าง dev)
+- **pytest warning:** Starlette 1.10 (dependency ทางอ้อมที่ไม่ได้ pin) เตือนว่าการใช้ `httpx` กับ `TestClient` เลิกแนะนำแล้ว ควรพิจารณา pin `starlette` หรือย้ายตามคำแนะนำก่อนที่ test จะพัง
+- **ไฟล์ generated ขึ้น modified:** `flutter pub get` เขียน `app/windows/flutter/generated_*` ใหม่ด้วย LF ทำให้ `git status` ขึ้น modified ทั้งที่เนื้อหาไม่เปลี่ยน แก้ได้ด้วย rule ใน `.gitattributes`
 
 ## ลำดับงานแนะนำ (ช่วงเวลาที่ยังใช้ Claude ได้อีกราว 6 วัน และสอบหัวข้อ 14 พ.ย.)
 
@@ -33,9 +42,10 @@
 
 ## P0 — ยืนยัน Slice 1
 
-- [ ] **V-1 Flutter run บน Windows** (platform folders อยู่ใน repo แล้ว ไม่ต้องรัน `flutter create` อีก)
+- [x] **V-1 Flutter run บน Windows** (platform folders อยู่ใน repo แล้ว ไม่ต้องรัน `flutter create` อีก)
   ทำ: `cd app` → `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000`
   เสร็จเมื่อ: analyze ได้ 0 issue (test ผ่านแล้ว 9/9) และหน้า Dashboard แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง"
+  ผล (9 พ.ย. 2569): analyze 0 issue, test 9/9 และเจ้าของโปรเจกต์ยืนยันว่าหน้า Dashboard แสดงถูกต้อง
 - [ ] **V-2 หลักฐาน S1**
   ทำ: บันทึก screenshot ของ Dashboard, output ของ `pytest -v`, output ของ smoke test และ `ingest_counts` จาก /health
   เสร็จเมื่อ: ไฟล์หลักฐานอยู่ใน `docs/evidence/s1/`
