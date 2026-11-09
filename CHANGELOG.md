@@ -8,6 +8,14 @@
 ### Fixed
 - คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
 
+### ทดสอบแล้วบน Windows (9 พ.ย. 2569: Windows 11, Python 3.12.10, Docker Engine 29.9.2 + Compose v5.6.1, Flutter 3.41.6)
+- `docker compose up -d`: `postgres:16` healthy, `eclipse-mosquitto` 2.1.2 ทำงาน และ init script สร้าง `agritwin_test` แล้ว (V-3)
+- Backend: `alembic upgrade head` (0001), `pytest` ผ่าน 29 ข้อ, `scripts/smoke_test.py` PASS และ simulator `--bad`/`--duplicate` ให้ตัวนับ rejected/duplicate ตรงตามคาด
+- Flutter: `flutter analyze` 0 issue, `flutter test` 9/9 และ `flutter run -d chrome` แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" เจ้าของโปรเจกต์ตรวจหน้าจอแล้วว่าแสดงถูกต้อง รวมถึงภาษาไทย (V-1)
+
+### ข้อจำกัดที่พบเพิ่ม
+- ดูหัวข้อ "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`: `localhost` ช้าบน Windows, มือถือจริงต้องรัน uvicorn ด้วย `--host 0.0.0.0`, พอร์ต Docker เปิดบนทุก interface และ deprecation warning ของ Starlette
+
 ## v0.1.0 — 2026-11-09 — Vertical Slice 1 (simulated data)
 
 เส้นทางข้อมูลแรกที่ทำงานครบ: simulator → MQTT → FastAPI ingest → PostgreSQL → REST → Flutter Dashboard
