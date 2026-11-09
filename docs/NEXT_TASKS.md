@@ -16,6 +16,7 @@
 - [x] Git: แยก branch ตามส่วนงานและ merge เข้า `main` พร้อมเตรียม tag `v0.1.0` (รายการที่ยังไม่ทดสอบอยู่ใน `CHANGELOG.md`)
 - [x] Flutter บน Windows: `flutter test` ผ่าน 9/9 และแก้ info จาก `flutter analyze` แล้ว
 - [x] `CLAUDE.md` import `AGENTS.md` เพื่อให้ Claude Code ใช้กติกาเดียวกับ Codex
+- [x] แก้คำสั่ง regenerate JSON Schema ให้ใช้บน Windows PowerShell ได้ (`python -m app.contract --write`)
 - [ ] **V-1 (ส่วนที่เหลือ)** รัน `flutter analyze` ซ้ำให้ได้ 0 issue และ `flutter run -d chrome` แสดงค่าจาก simulator
 - [ ] **V-3 รัน `docker compose up` จริงบน Windows** ยืนยัน healthcheck และการสร้าง `agritwin_test` จาก init script
 

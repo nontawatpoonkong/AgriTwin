@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from app.contract import TelemetryV1, device_id_from_topic, telemetry_topic
+from app.contract import TelemetryV1, device_id_from_topic, schema_json, telemetry_topic, write_schema
 from conftest import REPO_DIR
 
 EXAMPLES = REPO_DIR / "contracts" / "examples"
@@ -78,6 +78,24 @@ def test_topic_helpers():
 
 
 def test_json_schema_file_is_up_to_date():
-    """If this fails: cd backend && python -m app.contract > ../contracts/telemetry.v1.schema.json"""
+    """If this fails: cd backend && python -m app.contract --write"""
     on_disk = json.loads((REPO_DIR / "contracts" / "telemetry.v1.schema.json").read_text(encoding="utf-8"))
     assert on_disk == TelemetryV1.model_json_schema()
+
+
+def test_write_schema_is_utf8_without_bom_and_lf(tmp_path):
+    target = tmp_path / "schema.json"
+    assert write_schema(target) is True
+    raw = target.read_bytes()
+    assert not raw.startswith(b"\xef\xbb\xbf")
+    assert b"\r\n" not in raw
+    assert json.loads(raw.decode("utf-8")) == TelemetryV1.model_json_schema()
+    assert write_schema(target) is False  # unchanged content is left alone
+
+
+def test_write_schema_repairs_file_saved_by_powershell_redirect(tmp_path):
+    # Windows PowerShell 5.1 `>` saves UTF-16 with a BOM; json.loads cannot read that as UTF-8.
+    target = tmp_path / "schema.json"
+    target.write_text(schema_json(), encoding="utf-16")
+    assert write_schema(target) is True
+    assert json.loads(target.read_text(encoding="utf-8")) == TelemetryV1.model_json_schema()

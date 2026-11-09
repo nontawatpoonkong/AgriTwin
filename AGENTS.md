@@ -31,7 +31,7 @@ cd app; flutter analyze; flutter test
 ## Hard rules
 1. **Scope:** do NOT add Camera/360, NPK/pH/EC/BLE, AI Insight or 3D unless the task explicitly asks.
 2. **Contract changes:** edit `contract.py` → regenerate `contracts/telemetry.v1.schema.json`
-   (`cd backend; python -m app.contract > ../contracts/telemetry.v1.schema.json`) → update
+   (`cd backend; python -m app.contract --write`; never `>` redirection, PowerShell 5.1 re-encodes it) → update
    `docs/DATA_CONTRACT.md` → update `app/lib/core/sensor_catalog.dart` and Flutter models. Follow the
    versioning rules in DATA_CONTRACT.md §6. Never break existing v1.0 senders silently.
 3. **Database:** every schema change is a new Alembic revision with a working `downgrade()`. Never edit a
