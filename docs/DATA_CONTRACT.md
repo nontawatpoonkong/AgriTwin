@@ -114,6 +114,42 @@ Base URL ตอนพัฒนา: `http://localhost:8000` และดูเอ
 
 ### `GET /api/v1/devices` — รายการอุปกรณ์ (ไม่มีค่าเซนเซอร์)
 ### `GET /api/v1/devices/{device_id}/latest` — ค่าล่าสุดของอุปกรณ์เดียว (404 ถ้าไม่พบ)
+### `GET /api/v1/devices/{device_id}/readings` — ค่าย้อนหลังของอุปกรณ์ (BE-1, ใช้กับกราฟ)
+
+| พารามิเตอร์ | บังคับ | ความหมาย |
+|---|---|---|
+| `sensor_type` | – | กรองเฉพาะชนิดเซนเซอร์ ต้องอยู่ในตารางข้อ 3 ถ้าไม่ใส่จะได้ทุกชนิดปนกัน |
+| `from` | – | เวลาเริ่ม ISO 8601 ที่มี timezone **รวม** ค่าที่ `measured_at` เท่ากับเวลานี้ |
+| `to` | – | เวลาสิ้นสุด ISO 8601 ที่มี timezone **ไม่รวม** ค่าที่ `measured_at` เท่ากับเวลานี้ |
+| `limit` | – | จำนวนสูงสุดที่ส่งกลับ ค่าเริ่มต้น 1000 รับได้ 1–5000 |
+
+ตัวอย่าง `GET /api/v1/devices/sim-node-01/readings?sensor_type=soil_moisture&limit=2`
+
+```json
+{
+  "device_id": "sim-node-01",
+  "sensor_type": "soil_moisture",
+  "from": null,
+  "to": null,
+  "limit": 2,
+  "count": 2,
+  "truncated": true,
+  "readings": [
+    { "sensor_type": "soil_moisture", "value": 43.1, "unit": "%", "quality": "ok",
+      "source": "simulator", "measured_at": "2026-11-09T15:42:43Z" },
+    { "sensor_type": "soil_moisture", "value": 43.9, "unit": "%", "quality": "ok",
+      "source": "simulator", "measured_at": "2026-11-09T15:42:53Z" }
+  ]
+}
+```
+
+- `readings` เรียงตาม `measured_at` จากเก่าไปใหม่ ถ้าเวลาเท่ากันจะเรียงตามลำดับที่บันทึก และแต่ละค่ามี `quality` กับ `source` เหมือน `/dashboard/latest` (แอปใช้ `source` ติดป้าย "ข้อมูลจำลอง")
+- ถ้ามีข้อมูลในช่วงนั้นเกิน `limit` จะได้ค่า**ล่าสุด** `limit` ตัว และ `truncated: true` ถ้าต้องการข้อมูลที่เก่ากว่า ให้ส่ง `measured_at` ของค่าตัวแรกเป็น `to` ในคำขอถัดไป
+- ไม่มีข้อมูลในช่วงที่ขอ จะได้ 200 พร้อม `readings: []` ไม่ใช่ error
+- `from` และ `to` ที่ส่งกลับแปลงเป็น UTC แล้ว ส่วนเครื่องหมาย `+` ของ timezone ใน query string ต้องเขียนเป็น `%2B` (หรือใช้ `Z` แทน)
+- 404 ถ้าไม่พบอุปกรณ์ และ 422 ถ้า `sensor_type` ไม่อยู่ในตารางข้อ 3, เวลาไม่มี timezone, `from` ไม่น้อยกว่า `to` หรือ `limit` อยู่นอกช่วง 1–5000
+- ยังไม่มีการรวมข้อมูลเป็นช่วง (เช่น ค่าเฉลี่ยรายชั่วโมง) ข้อมูลที่ถี่มากในช่วงยาวจึงถูกตัดเหลือ 5000 ค่าล่าสุด (ดู "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`)
+
 ### `GET /api/v1/health`
 
 ```json

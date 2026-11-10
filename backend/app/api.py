@@ -5,17 +5,21 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .contract import SENSOR_CATALOG
 from .db import db_ok, get_session
 from .models import Device, SensorReading
 
 router = APIRouter(prefix="/api/v1")
+
+HISTORY_DEFAULT_LIMIT = 1000
+HISTORY_MAX_LIMIT = 5000
 
 
 # ---------- response models ----------
@@ -27,13 +31,28 @@ class HealthOut(BaseModel):
     server_time: datetime
 
 
-class LatestReadingOut(BaseModel):
+class ReadingOut(BaseModel):
     sensor_type: str
     value: float
     unit: str
     quality: Literal["ok", "suspect"]
     source: str
     measured_at: datetime
+
+
+class LatestReadingOut(ReadingOut):
+    """Latest value of one sensor type."""
+
+
+class ReadingHistoryOut(BaseModel):
+    device_id: str
+    sensor_type: str | None
+    from_: datetime | None = Field(serialization_alias="from")
+    to: datetime | None
+    limit: int
+    count: int
+    truncated: bool
+    readings: list[ReadingOut]
 
 
 class DeviceOut(BaseModel):
@@ -122,6 +141,59 @@ def device_latest(device_id: str, session: Session = Depends(get_session)):
     now = datetime.now(timezone.utc)
     readings = _latest_readings(session, device_id).get(device_id, [])
     return {**_device_out(device, now), "readings": readings}
+
+
+@router.get("/devices/{device_id}/readings", response_model=ReadingHistoryOut)
+def device_readings(
+    device_id: str,
+    sensor_type: str | None = Query(None, description="Sensor type from the catalog, e.g. soil_moisture"),
+    from_: datetime | None = Query(
+        None, alias="from", description="Inclusive lower bound on measured_at, ISO 8601 with timezone"
+    ),
+    to: datetime | None = Query(None, description="Exclusive upper bound on measured_at, ISO 8601 with timezone"),
+    limit: int = Query(HISTORY_DEFAULT_LIMIT, ge=1, le=HISTORY_MAX_LIMIT),
+    session: Session = Depends(get_session),
+):
+    """Readings of one device, oldest first.
+
+    When more than `limit` readings match, the newest `limit` of them are returned and `truncated`
+    is true; older ones can be fetched by passing the first returned `measured_at` as `to`.
+    """
+    if sensor_type is not None and sensor_type not in SENSOR_CATALOG:
+        raise HTTPException(
+            status_code=422, detail=f"unknown sensor_type '{sensor_type}'; allowed: {sorted(SENSOR_CATALOG)}"
+        )
+    for name, value in (("from", from_), ("to", to)):
+        if value is not None and value.utcoffset() is None:
+            raise HTTPException(
+                status_code=422, detail=f"'{name}' must include a timezone, e.g. 2026-11-09T13:00:00Z"
+            )
+    if from_ is not None and to is not None and from_ >= to:
+        raise HTTPException(status_code=422, detail="'from' must be earlier than 'to'")
+    if session.get(Device, device_id) is None:
+        raise HTTPException(status_code=404, detail=f"device '{device_id}' not found")
+
+    stmt = select(SensorReading).where(SensorReading.device_id == device_id)
+    if sensor_type is not None:
+        stmt = stmt.where(SensorReading.sensor_type == sensor_type)
+    if from_ is not None:
+        stmt = stmt.where(SensorReading.measured_at >= from_)
+    if to is not None:
+        stmt = stmt.where(SensorReading.measured_at < to)
+    # Newest first so a cut keeps the most recent part of the range; flipped to oldest first below.
+    stmt = stmt.order_by(SensorReading.measured_at.desc(), SensorReading.id.desc()).limit(limit + 1)
+    rows = list(session.scalars(stmt))
+    readings = [ReadingOut.model_validate(r, from_attributes=True) for r in reversed(rows[:limit])]
+    return ReadingHistoryOut(
+        device_id=device_id,
+        sensor_type=sensor_type,
+        from_=from_.astimezone(timezone.utc) if from_ else None,
+        to=to.astimezone(timezone.utc) if to else None,
+        limit=limit,
+        count=len(readings),
+        truncated=len(rows) > limit,
+        readings=readings,
+    )
 
 
 @router.get("/dashboard/latest", response_model=DashboardLatestOut)

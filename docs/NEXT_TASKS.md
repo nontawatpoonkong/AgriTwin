@@ -22,9 +22,11 @@
 - [x] Backend บน Windows (Python 3.12.10): `alembic upgrade head`, `pytest` ผ่าน 29 ข้อ, smoke test และ simulator `--bad`/`--duplicate` ผ่าน
 - [x] แก้แถบ "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (Connection closed before full header was received)" ที่ขึ้นเป็นครั้งคราวบน Android: รอบ poll 5 วินาทีชนกับเวลาที่ uvicorn ปิด keep-alive connection (`--timeout-keep-alive` ค่าเริ่มต้น 5 วินาที) ตอนนี้ `AgriTwinApi` retry GET หนึ่งครั้งบน connection ใหม่ (web ไม่เคยเจอปัญหานี้เพราะ browser retry เอง)
 
-## ปัญหาที่รู้แล้ว (พบตอนยืนยันบน Windows และ Android 9 พ.ย. 2569)
-- **release build ยังเรียก `http://` ได้:** HTTP client ของ Dart ไม่ได้อ่านนโยบาย cleartext ของ Android ตอน deploy จริง (OPS-1) จึงต้องตั้ง `API_BASE_URL` เป็น `https://`
+## ปัญหาที่รู้แล้ว (พบตอนยืนยันบน Windows และ Android 9–10 พ.ย. 2569)
 
+- **History API ยังไม่รวมข้อมูลเป็นช่วง (BE-1):** ส่งได้สูงสุด 5000 ค่าต่อครั้ง ถ้าข้อมูลถี่และขอช่วงยาวจะได้แค่ 5000 ค่าล่าสุด (`truncated: true`) เช่น simulator ที่ส่งทุก 10 วินาที 5000 ค่าคิดเป็นราว 14 ชั่วโมง ส่วนเซนเซอร์ที่ส่งทุก 60 วินาทีจะมีราว 10,080 ค่าใน 7 วัน ดูข้อเสนอ BE-6
+- **History API ที่ไม่ระบุ `sensor_type`:** index `(device_id, sensor_type, measured_at)` ใช้ได้ไม่เต็มที่ เพราะต้องเรียงข้อมูลทุกชนิดของอุปกรณ์นั้น ตอนนี้ข้อมูลยังน้อยจึงไม่มีปัญหา ถ้าช้าให้พิจารณาเพิ่ม index `(device_id, measured_at)` ด้วย migration ใหม่
+- **release build ยังเรียก `http://` ได้:** HTTP client ของ Dart ไม่ได้อ่านนโยบาย cleartext ของ Android ตอน deploy จริง (OPS-1) จึงต้องตั้ง `API_BASE_URL` เป็น `https://`
 - **`localhost` ช้าบน Windows:** `localhost` resolve เป็น `::1` ก่อน แต่ uvicorn ฟังแค่ IPv4 โปรแกรมที่ไม่ใช่ browser (Python, PowerShell) จึงเสียเวลาราว 2 วินาทีต่อ connection ใหม่ ถ้าเรียกจากสคริปต์ให้ใช้ `http://127.0.0.1:8000` (Chrome ไม่มีปัญหานี้)
 - **มือถือจริงต้องเปิด host ของ API:** uvicorn ค่าเริ่มต้นฟังแค่ `127.0.0.1` ถ้าจะทดสอบกับมือถือจริงใน LAN ต้องรันด้วย `--host 0.0.0.0` และเปิดพอร์ต 8000 ใน Windows Firewall (emulator ใช้ `10.0.2.2` ได้เลย) เขียนขั้นตอนไว้ใน README แล้ว
 - **Docker เปิดพอร์ตบนทุก interface:** 1883 และ 5433 ผูกกับ `0.0.0.0` เครื่องอื่นใน LAN จึงส่งข้อความเข้า Mosquitto แบบ anonymous ได้จนกว่าจะทำ BE-3 (หรือผูกพอร์ตกับ `127.0.0.1` ใน compose ระหว่าง dev)
@@ -66,11 +68,13 @@
 
 ## Backend
 
-- [ ] **BE-1 History API** `GET /api/v1/devices/{id}/readings?sensor_type=&from=&to=&limit=` (limit สูงสุด 5000, เรียงตามเวลา) พร้อม test และอัปเดต DATA_CONTRACT.md
+- [x] **BE-1 History API** `GET /api/v1/devices/{id}/readings?sensor_type=&from=&to=&limit=` (limit สูงสุด 5000, เรียงตามเวลา) พร้อม test และอัปเดต DATA_CONTRACT.md
+  ผล (10 พ.ย. 2569): `from` รวมขอบ `to` ไม่รวมขอบ, `limit` ค่าเริ่มต้น 1000 (1–5000), ข้อมูลเกิน limit ได้ค่าล่าสุดพร้อม `truncated`, 404/422 ตามเอกสาร มี test 21 ข้อ (pytest รวม 55 ข้อ) และ pytest จะหยุดเองถ้า `TEST_DATABASE_URL` ไม่ได้ชี้ไปที่ฐาน `*_test`
 - [ ] **BE-2 Rejects API** `GET /api/v1/ingest/rejects?limit=50` สำหรับ debug ตอนต่อ Gateway จริง
 - [ ] **BE-3 MQTT auth + ACL** ตั้ง Mosquitto ให้ใช้ `password_file` + `acl_file` โดย gateway publish ได้เฉพาะ `agritwin/+/devices/+/telemetry` และ backend subscribe ได้ ใส่ secret ใน `.env` เท่านั้น
 - [ ] **BE-4 Farm / Plot / Device assignment** (S3) ทำ migration 0002 + CRUD + audit fields และผูก device กับ plot ตามช่วงเวลา
 - [ ] **BE-5 ตาราง latest** เมื่อ `sensor_readings` มีมากกว่า ~1 ล้านแถว หรือ `/dashboard/latest` ช้ากว่า 200 ms
+- [ ] **BE-6 รวมข้อมูลย้อนหลังเป็นช่วง** (ข้อเสนอจาก BE-1) เพิ่มพารามิเตอร์ เช่น `bucket=1h` ให้ History API ส่งค่าเฉลี่ย/ต่ำสุด/สูงสุดต่อช่วง เพื่อให้กราฟ 7 วันครอบคลุมทั้งช่วงแม้ข้อมูลเกิน 5000 ค่า และยังบอกได้ว่าแต่ละช่วงมีข้อมูลที่ไม่ใช่ `gateway` หรือไม่
 
 ## Gateway / IoT (ทำร่วมกับคนทำ Hardware)
 

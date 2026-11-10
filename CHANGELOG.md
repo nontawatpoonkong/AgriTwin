@@ -5,6 +5,8 @@
 ### Added
 - `CLAUDE.md` ที่ import `AGENTS.md` ด้วยบรรทัด `@AGENTS.md` เพื่อให้ Claude Code โหลดกติกาชุดเดียวกับ Codex ทุกครั้ง (แก้กติกาที่ `AGENTS.md` ที่เดียว)
 - Android: ตั้ง `usesCleartextTraffic` เฉพาะใน manifest ของ debug/profile เพื่อให้ระบบเครือข่ายของ Android เอง (เช่น WebView) คุยกับ API แบบ HTTP ตอนพัฒนาได้ ส่วน HTTP client ของ Dart ไม่ได้อ่านค่านี้ และเรียก `http://` ได้อยู่แล้ว (APP-0)
+- History API `GET /api/v1/devices/{device_id}/readings` กรองตาม `sensor_type` และช่วงเวลา `from` (รวมขอบ) ถึง `to` (ไม่รวมขอบ) มี `limit` 1–5000 (ค่าเริ่มต้น 1000) เรียงจากเก่าไปใหม่ ถ้าเกิน limit จะได้ค่าล่าสุดพร้อม `truncated: true` ทุกค่ามี `source` และ `quality` (BE-1)
+- pytest หยุดทันทีถ้า `TEST_DATABASE_URL` ไม่ได้ชี้ไปที่ฐานที่ชื่อลงท้าย `_test` หรือชี้ไปฐานเดียวกับ `DATABASE_URL` และแสดงชื่อฐานเป้าหมาย (ไม่แสดงรหัสผ่าน) ในหัว output ของ pytest
 
 ### Fixed
 - คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
