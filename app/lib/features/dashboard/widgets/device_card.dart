@@ -3,14 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../core/format.dart';
 import '../../../core/sensor_catalog.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/widgets/simulated_badge.dart';
 import '../../../data/models.dart';
 import 'sensor_tile.dart';
 
 class DeviceCard extends StatelessWidget {
-  const DeviceCard({super.key, required this.device, required this.serverTime});
+  const DeviceCard({super.key, required this.device, required this.serverTime, this.onOpenHistory});
 
   final DeviceLatest device;
   final DateTime serverTime;
+
+  /// Opens the history chart of one reading's sensor; tiles are not tappable when null.
+  final void Function(LatestReading reading)? onOpenHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +48,7 @@ class DeviceCard extends StatelessWidget {
                   'อัปเดตล่าสุด ${formatAge(serverTime.difference(device.lastSeenAt))}',
                   style: theme.textTheme.bodySmall,
                 ),
-                if (device.isSimulated) const _SimulatedBadge(),
+                if (device.isSimulated) const SimulatedBadge(),
               ],
             ),
             const SizedBox(height: AppTokens.space3),
@@ -61,7 +65,13 @@ class DeviceCard extends StatelessWidget {
                     runSpacing: AppTokens.space2,
                     children: [
                       for (final r in readings)
-                        SizedBox(width: tileWidth, child: SensorTile(reading: r)),
+                        SizedBox(
+                          width: tileWidth,
+                          child: SensorTile(
+                            reading: r,
+                            onTap: onOpenHistory == null ? null : () => onOpenHistory!(r),
+                          ),
+                        ),
                     ],
                   );
                 },
@@ -93,35 +103,6 @@ class _StatusChip extends StatelessWidget {
           Icon(Icons.circle, size: 10, color: color),
           const SizedBox(width: AppTokens.space1),
           Text(online ? 'ออนไลน์' : 'ออฟไลน์', style: TextStyle(color: color)),
-        ],
-      ),
-    );
-  }
-}
-
-class _SimulatedBadge extends StatelessWidget {
-  const _SimulatedBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTokens.space2, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppTokens.simulatedBadgeBg,
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.science_outlined, size: 14, color: AppTokens.simulatedBadgeFg),
-          SizedBox(width: AppTokens.space1),
-          Text(
-            'ข้อมูลจำลอง',
-            style: TextStyle(
-              color: AppTokens.simulatedBadgeFg,
-              fontSize: AppTokens.captionFontSize,
-            ),
-          ),
         ],
       ),
     );

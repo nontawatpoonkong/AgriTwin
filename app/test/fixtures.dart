@@ -51,3 +51,56 @@ class FakeSource implements DashboardSource {
   @override
   Future<DashboardLatest> fetchDashboard() => handler(calls++);
 }
+
+/// JSON shaped like GET /api/v1/devices/{id}/readings (BE-1): soil_moisture every 10 minutes.
+Map<String, dynamic> historyJson({
+  List<double> values = const [40.0, 41.5, 43.0],
+  String source = 'simulator',
+  List<String>? qualities,
+  bool truncated = false,
+  int limit = 5000,
+}) =>
+    {
+      'device_id': 'sim-node-01',
+      'sensor_type': 'soil_moisture',
+      'from': '2026-11-09T12:00:00Z',
+      'to': null,
+      'limit': limit,
+      'count': values.length,
+      'truncated': truncated,
+      'readings': [
+        for (var i = 0; i < values.length; i++)
+          {
+            'sensor_type': 'soil_moisture',
+            'value': values[i],
+            'unit': '%',
+            'quality': qualities?[i] ?? 'ok',
+            'source': source,
+            'measured_at':
+                DateTime.utc(2026, 11, 10, 9).add(Duration(minutes: 10 * i)).toIso8601String(),
+          },
+      ],
+    };
+
+typedef HistoryRequest = ({String deviceId, String sensorType, DateTime from, DateTime? to, int? limit});
+
+class FakeHistorySource implements HistorySource {
+  FakeHistorySource(this.handler);
+
+  final Future<ReadingHistory> Function(int call) handler;
+  final List<HistoryRequest> requests = [];
+
+  int get calls => requests.length;
+
+  @override
+  Future<ReadingHistory> fetchHistory({
+    required String deviceId,
+    required String sensorType,
+    required DateTime from,
+    DateTime? to,
+    int? limit,
+  }) {
+    requests.add((deviceId: deviceId, sensorType: sensorType, from: from, to: to, limit: limit));
+    return handler(requests.length - 1);
+  }
+}

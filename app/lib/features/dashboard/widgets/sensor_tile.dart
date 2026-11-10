@@ -6,22 +6,24 @@ import '../../../core/theme/tokens.dart';
 import '../../../data/models.dart';
 
 class SensorTile extends StatelessWidget {
-  const SensorTile({super.key, required this.reading});
+  const SensorTile({super.key, required this.reading, this.onTap});
 
   final LatestReading reading;
+
+  /// Opens this sensor's history chart; the tile is not tappable when null.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final info = sensorInfo(reading.sensorType);
-
-    return Container(
+    final decoration = BoxDecoration(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(AppTokens.radiusTile),
+      border: reading.isSuspect ? Border.all(color: AppTokens.suspect, width: 1.5) : null,
+    );
+    final body = Padding(
       padding: const EdgeInsets.all(AppTokens.space3),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppTokens.radiusTile),
-        border: reading.isSuspect ? Border.all(color: AppTokens.suspect, width: 1.5) : null,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,6 +38,7 @@ class SensorTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (onTap != null) Icon(Icons.show_chart, size: 16, color: theme.colorScheme.outline),
             ],
           ),
           const SizedBox(height: AppTokens.space2),
@@ -67,6 +70,17 @@ class SensorTile extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+
+    if (onTap == null) return DecoratedBox(decoration: decoration, child: body);
+    // Ink draws the tile background on the Material so the tap ripple stays visible on top of it.
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTokens.radiusTile),
+        child: Ink(decoration: decoration, child: body),
       ),
     );
   }

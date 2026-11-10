@@ -7,6 +7,7 @@
 - Android: ตั้ง `usesCleartextTraffic` เฉพาะใน manifest ของ debug/profile เพื่อให้ระบบเครือข่ายของ Android เอง (เช่น WebView) คุยกับ API แบบ HTTP ตอนพัฒนาได้ ส่วน HTTP client ของ Dart ไม่ได้อ่านค่านี้ และเรียก `http://` ได้อยู่แล้ว (APP-0)
 - History API `GET /api/v1/devices/{device_id}/readings` กรองตาม `sensor_type` และช่วงเวลา `from` (รวมขอบ) ถึง `to` (ไม่รวมขอบ) มี `limit` 1–5000 (ค่าเริ่มต้น 1000) เรียงจากเก่าไปใหม่ ถ้าเกิน limit จะได้ค่าล่าสุดพร้อม `truncated: true` ทุกค่ามี `source` และ `quality` (BE-1)
 - pytest หยุดทันทีถ้า `TEST_DATABASE_URL` ไม่ได้ชี้ไปที่ฐานที่ชื่อลงท้าย `_test` หรือชี้ไปฐานเดียวกับ `DATABASE_URL` และแสดงชื่อฐานเป้าหมาย (ไม่แสดงรหัสผ่าน) ในหัว output ของ pytest
+- กราฟย้อนหลัง: แตะการ์ดเซนเซอร์บน Dashboard เพื่อเปิดกราฟ 24 ชม./7 วันจาก History API มีค่าล่าสุด/ต่ำสุด/สูงสุด, สถานะ loading/empty/error/stale, ป้าย "ข้อมูลจำลอง", ข้อความเตือนเมื่อข้อมูลถูกตัด, เครื่องหมายค่าผิดปกติ และไม่ลากเส้นข้ามช่วงที่ข้อมูลหาย วาดด้วย CustomPainter โดยไม่เพิ่ม package และใช้ธีมเดิม (APP-1)
 
 ### Fixed
 - คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
@@ -19,6 +20,7 @@
 - Backend: `alembic upgrade head` (0001), `pytest` ผ่าน 29 ข้อ, `scripts/smoke_test.py` PASS และ simulator `--bad`/`--duplicate` ให้ตัวนับ rejected/duplicate ตรงตามคาด
 - Flutter: `flutter analyze` 0 issue, `flutter test` 9/9 และ `flutter run -d chrome` แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" เจ้าของโปรเจกต์ตรวจหน้าจอแล้วว่าแสดงถูกต้อง รวมถึงภาษาไทย (V-1)
 - Android emulator (Android 17 / API 37, AVD `AgriTwin_API_37`) กับ `API_BASE_URL=http://10.0.2.2:8000`: APK ทั้ง debug และ release หลังแก้ APP-0 แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" ส่วน release ก่อนแก้เรียก API ไม่ได้ (APP-0)
+- 10 พ.ย. 2569: History API กับฐาน dev จริง (ได้ 200/404/422 ตามเอกสาร) และกราฟย้อนหลังใน web build บน Chrome ของ Claude desktop กับ API จริง: เปิดจาก tile ได้ และช่วง 24 ชม./7 วันส่ง `from` ถูกต้อง (BE-1, APP-1) ยังไม่ได้ลองกราฟบน Android
 
 ### ข้อจำกัดที่พบเพิ่ม
 - ดูหัวข้อ "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`: `localhost` ช้าบน Windows, มือถือจริงต้องรัน uvicorn ด้วย `--host 0.0.0.0`, พอร์ต Docker เปิดบนทุก interface, deprecation warning ของ Starlette และ release build ยังใช้ `http://` ได้

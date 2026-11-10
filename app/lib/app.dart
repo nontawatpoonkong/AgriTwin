@@ -5,9 +5,10 @@ import 'data/api_client.dart';
 import 'features/dashboard/dashboard_page.dart';
 
 class AgriTwinApp extends StatelessWidget {
-  const AgriTwinApp({super.key, required this.source});
+  const AgriTwinApp({super.key, required this.source, this.historySource});
 
   final DashboardSource source;
+  final HistorySource? historySource;
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class AgriTwinApp extends StatelessWidget {
       title: 'AgriTwin',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: DashboardPage(source: source),
+      home: DashboardPage(source: source, historySource: historySource),
     );
   }
 }
