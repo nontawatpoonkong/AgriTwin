@@ -35,4 +35,11 @@ class AppTokens {
 
   // Layout
   static const double wideBreakpoint = 720;
+
+  // History chart
+  static const double chartHeight = 220;
+  static const double chartLabelWidth = 48; // room for the value labels on the left
+  static const double chartLineWidth = 2;
+  static const double chartGridLineWidth = 1;
+  static const double chartPointRadius = 3;
 }

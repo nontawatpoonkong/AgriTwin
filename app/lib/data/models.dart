@@ -1,4 +1,6 @@
-/// Models for GET /api/v1/dashboard/latest (see docs/DATA_CONTRACT.md).
+/// Models for the REST API v1 (see docs/DATA_CONTRACT.md).
+///
+/// One sensor reading. The dashboard's latest values and the History API use the same JSON shape.
 class LatestReading {
   const LatestReading({
     required this.sensorType,
@@ -84,6 +86,39 @@ class DashboardLatest {
         offlineAfterSeconds: json['offline_after_seconds'] as int,
         devices: (json['devices'] as List<dynamic>)
             .map((e) => DeviceLatest.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+/// GET /api/v1/devices/{device_id}/readings (BE-1): readings oldest first.
+class ReadingHistory {
+  const ReadingHistory({
+    required this.deviceId,
+    required this.sensorType,
+    required this.limit,
+    required this.truncated,
+    required this.readings,
+  });
+
+  final String deviceId;
+  final String? sensorType;
+  final int limit;
+
+  /// True when the range held more than [limit] readings; [readings] then holds only the newest ones.
+  final bool truncated;
+  final List<LatestReading> readings;
+
+  bool get isEmpty => readings.isEmpty;
+  bool get hasSimulated => readings.any((r) => r.isSimulated);
+  int get suspectCount => readings.where((r) => r.isSuspect).length;
+
+  factory ReadingHistory.fromJson(Map<String, dynamic> json) => ReadingHistory(
+        deviceId: json['device_id'] as String,
+        sensorType: json['sensor_type'] as String?,
+        limit: json['limit'] as int,
+        truncated: json['truncated'] as bool,
+        readings: (json['readings'] as List<dynamic>)
+            .map((e) => LatestReading.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
 }

@@ -13,3 +13,10 @@ String formatClock(DateTime t) {
   String two(int n) => n.toString().padLeft(2, '0');
   return '${two(l.hour)}:${two(l.minute)}:${two(l.second)}';
 }
+
+/// Local day and time "d/M HH:mm", e.g. "9/11 14:05".
+String formatDayTime(DateTime t) {
+  final l = t.toLocal();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${l.day}/${l.month} ${two(l.hour)}:${two(l.minute)}';
+}

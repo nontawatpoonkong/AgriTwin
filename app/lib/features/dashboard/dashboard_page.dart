@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/config.dart';
-import '../../core/format.dart';
 import '../../core/theme/tokens.dart';
+import '../../core/widgets/stale_banner.dart';
 import '../../data/api_client.dart';
+import '../../data/models.dart';
+import '../history/history_page.dart';
 import 'dashboard_controller.dart';
 import 'widgets/device_card.dart';
 
@@ -11,10 +13,14 @@ class DashboardPage extends StatefulWidget {
   const DashboardPage({
     super.key,
     required this.source,
+    this.historySource,
     this.pollInterval = AppConfig.pollInterval,
   });
 
   final DashboardSource source;
+
+  /// Enables tapping a sensor tile to open its history chart (APP-1).
+  final HistorySource? historySource;
   final Duration pollInterval;
 
   @override
@@ -73,44 +79,31 @@ class _DashboardPageState extends State<DashboardPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(AppTokens.space4),
         children: [
-          if (error != null) _StaleBanner(error: error, lastSuccessAt: _controller.lastSuccessAt),
+          if (error != null) StaleBanner(error: error, lastSuccessAt: _controller.lastSuccessAt),
           if (data.devices.isEmpty)
             const _EmptyView()
           else
-            ...data.devices.map((d) => DeviceCard(device: d, serverTime: data.serverTime)),
+            ...data.devices.map(
+              (d) => DeviceCard(
+                device: d,
+                serverTime: data.serverTime,
+                onOpenHistory: widget.historySource == null ? null : (r) => _openHistory(d, r),
+              ),
+            ),
         ],
       ),
     );
   }
-}
 
-class _StaleBanner extends StatelessWidget {
-  const _StaleBanner({required this.error, required this.lastSuccessAt});
-
-  final String error;
-  final DateTime? lastSuccessAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final when = lastSuccessAt == null ? '' : ' เมื่อ ${formatClock(lastSuccessAt!)}';
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTokens.space4),
-      padding: const EdgeInsets.all(AppTokens.space3),
-      decoration: BoxDecoration(
-        color: AppTokens.staleBannerBg,
-        borderRadius: BorderRadius.circular(AppTokens.radiusTile),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.cloud_off, color: AppTokens.staleBannerFg),
-          const SizedBox(width: AppTokens.space2),
-          Expanded(
-            child: Text(
-              'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กำลังแสดงข้อมูลล่าสุด$when\n$error',
-              style: const TextStyle(color: AppTokens.staleBannerFg),
-            ),
-          ),
-        ],
+  void _openHistory(DeviceLatest device, LatestReading reading) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SensorHistoryPage(
+          source: widget.historySource!,
+          deviceId: device.deviceId,
+          deviceTitle: device.title,
+          sensorType: reading.sensorType,
+        ),
       ),
     );
   }

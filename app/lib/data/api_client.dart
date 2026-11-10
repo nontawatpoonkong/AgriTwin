@@ -19,7 +19,20 @@ abstract class DashboardSource {
   Future<DashboardLatest> fetchDashboard();
 }
 
-class AgriTwinApi implements DashboardSource {
+/// What the history chart needs (BE-1 History API). Tests provide a fake implementation.
+abstract class HistorySource {
+  /// Readings of [sensorType] on [deviceId] measured at or after [from] (and before [to] if given),
+  /// oldest first. [limit] defaults to the largest page the API accepts.
+  Future<ReadingHistory> fetchHistory({
+    required String deviceId,
+    required String sensorType,
+    required DateTime from,
+    DateTime? to,
+    int? limit,
+  });
+}
+
+class AgriTwinApi implements DashboardSource, HistorySource {
   AgriTwinApi({required this.baseUrl, http.Client? client}) : _client = client ?? http.Client();
 
   final String baseUrl;
@@ -27,9 +40,12 @@ class AgriTwinApi implements DashboardSource {
 
   static const Duration _timeout = Duration(seconds: 8);
 
+  /// Largest page the History API accepts (docs/DATA_CONTRACT.md).
+  static const int maxHistoryLimit = 5000;
+
   @override
   Future<DashboardLatest> fetchDashboard() async {
-    final json = await _getJson('/api/v1/dashboard/latest');
+    final json = await _getJson(Uri.parse('$baseUrl/api/v1/dashboard/latest'));
     try {
       return DashboardLatest.fromJson(json);
     } on Object {
@@ -37,8 +53,32 @@ class AgriTwinApi implements DashboardSource {
     }
   }
 
-  Future<Map<String, dynamic>> _getJson(String path) async {
-    final res = await _get(Uri.parse('$baseUrl$path'));
+  @override
+  Future<ReadingHistory> fetchHistory({
+    required String deviceId,
+    required String sensorType,
+    required DateTime from,
+    DateTime? to,
+    int? limit,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/devices/${Uri.encodeComponent(deviceId)}/readings').replace(
+      queryParameters: {
+        'sensor_type': sensorType,
+        'from': from.toUtc().toIso8601String(),
+        if (to != null) 'to': to.toUtc().toIso8601String(),
+        'limit': '${limit ?? maxHistoryLimit}',
+      },
+    );
+    final json = await _getJson(uri);
+    try {
+      return ReadingHistory.fromJson(json);
+    } on Object {
+      throw const ApiException('ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API');
+    }
+  }
+
+  Future<Map<String, dynamic>> _getJson(Uri uri) async {
+    final res = await _get(uri);
     if (res.statusCode != 200) {
       throw ApiException('เซิร์ฟเวอร์ตอบกลับรหัส ${res.statusCode}');
     }
