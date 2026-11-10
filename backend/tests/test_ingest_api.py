@@ -6,42 +6,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from alembic import command
-from alembic.config import Config
 from sqlalchemy import func, select, text, update
 
-from conftest import BACKEND_DIR, REPO_DIR, TEST_DATABASE_URL
+from conftest import REPO_DIR, TEST_DATABASE_URL, alembic_cfg
 
 pytestmark = pytest.mark.skipif(not TEST_DATABASE_URL, reason="TEST_DATABASE_URL not set")
 
 TOPIC = "agritwin/dev/devices/node-01/telemetry"
-
-
-def alembic_cfg() -> Config:
-    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    cfg.set_main_option("script_location", str(BACKEND_DIR / "migrations"))
-    cfg.attributes["database_url"] = TEST_DATABASE_URL
-    return cfg
-
-
-@pytest.fixture()
-def db():
-    from app.db import get_sessionmaker
-
-    cfg = alembic_cfg()
-    command.downgrade(cfg, "base")
-    command.upgrade(cfg, "head")
-    with get_sessionmaker()() as session:
-        yield session
-
-
-@pytest.fixture()
-def client(db):
-    from fastapi.testclient import TestClient
-
-    from app.main import create_app
-
-    with TestClient(create_app()) as c:
-        yield c
 
 
 def payload(**overrides) -> str:
