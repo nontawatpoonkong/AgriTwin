@@ -85,12 +85,25 @@ Map<String, dynamic> historyJson({
 typedef HistoryRequest = ({String deviceId, String sensorType, DateTime from, DateTime? to, int? limit});
 
 class FakeHistorySource implements HistorySource {
-  FakeHistorySource(this.handler);
+  /// [device] is what fetchDeviceLatest returns: by default sim-node-01 from [dashboardJson]
+  /// (soil moisture and air temperature, simulator data).
+  FakeHistorySource(this.handler, {DeviceLatest? device, this.deviceFails = false})
+      : device = device ?? DashboardLatest.fromJson(dashboardJson()).devices.single;
 
   final Future<ReadingHistory> Function(int call) handler;
+  final DeviceLatest device;
+  final bool deviceFails;
   final List<HistoryRequest> requests = [];
+  int deviceCalls = 0;
 
   int get calls => requests.length;
+
+  @override
+  Future<DeviceLatest> fetchDeviceLatest(String deviceId) async {
+    deviceCalls++;
+    if (deviceFails) throw const ApiException('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (test)');
+    return device;
+  }
 
   @override
   Future<ReadingHistory> fetchHistory({
