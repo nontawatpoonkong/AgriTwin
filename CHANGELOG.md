@@ -8,6 +8,12 @@
 - History API `GET /api/v1/devices/{device_id}/readings` กรองตาม `sensor_type` และช่วงเวลา `from` (รวมขอบ) ถึง `to` (ไม่รวมขอบ) มี `limit` 1–5000 (ค่าเริ่มต้น 1000) เรียงจากเก่าไปใหม่ ถ้าเกิน limit จะได้ค่าล่าสุดพร้อม `truncated: true` ทุกค่ามี `source` และ `quality` (BE-1)
 - pytest หยุดทันทีถ้า `TEST_DATABASE_URL` ไม่ได้ชี้ไปที่ฐานที่ชื่อลงท้าย `_test` หรือชี้ไปฐานเดียวกับ `DATABASE_URL` และแสดงชื่อฐานเป้าหมาย (ไม่แสดงรหัสผ่าน) ในหัว output ของ pytest
 - กราฟย้อนหลัง: แตะการ์ดเซนเซอร์บน Dashboard เพื่อเปิดกราฟ 24 ชม./7 วันจาก History API มีค่าล่าสุด/ต่ำสุด/สูงสุด, สถานะ loading/empty/error/stale, ป้าย "ข้อมูลจำลอง", ข้อความเตือนเมื่อข้อมูลถูกตัด, เครื่องหมายค่าผิดปกติ และไม่ลากเส้นข้ามช่วงที่ข้อมูลหาย วาดด้วย CustomPainter โดยไม่เพิ่ม package และใช้ธีมเดิม (APP-1)
+- หน้ากราฟ: ช่วง 30 วัน, การ์ดสถานะอุปกรณ์และแหล่งข้อมูล (Gateway/Simulator/ทดสอบระบบ) และค่าล่าสุดของอุปกรณ์ที่แตะเพื่อสลับเซนเซอร์ได้ ใช้ `GET /api/v1/devices/{id}/latest` ที่มีอยู่แล้ว ไม่เปลี่ยน API contract (UI-2)
+- Dashboard: การ์ดสรุปสถานะอุปกรณ์ (ออนไลน์/ขาดการติดต่อ/ค่าผิดปกติ) และการ์ดแนวโน้มความชื้นดิน 24 ชม. ที่แตะเพื่อเปิดหน้ากราฟ (UI-2)
+
+### Changed
+- UI ของ Dashboard และหน้ากราฟจัดตาม Figma "AgriTwin — Mobile UI Concept | Research Proposal" ของเจ้าของโปรเจกต์ (Screen 01 Home, Screen 04 Sensor): ค่าใน `tokens.dart` มาจากเฟรม Design Tokens ของไฟล์นั้นแทนค่าชั่วคราว (ยังไม่ใช่ Kaset App ซึ่งรอภาพอ้างอิงในงาน UI-1) ส่วนที่ Figma มีแต่ระบบยังไม่มีข้อมูล เช่น พยากรณ์อากาศ ตัวเลือกฟาร์ม แบตเตอรี่/RSSI และแถบเมนูล่าง ไม่ได้ทำ และไม่ใส่ข้อมูลตัวอย่างแทน (UI-2)
+- แถบ "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กำลังแสดงข้อมูลล่าสุด…" ตัดรายละเอียด error เหลือ 2 บรรทัดเพื่อไม่ให้บังข้อมูลบนมือถือ และแสดงวันที่ด้วยเมื่อข้อมูลล่าสุดไม่ใช่ของวันนี้ (เวลาอัปเดตในหน้ากราฟก็เช่นกัน) เดิมแสดงแค่เวลา ข้อมูลที่ค้างข้ามวันจึงดูเหมือนเป็นของวันนี้
 
 ### Fixed
 - คำสั่ง regenerate JSON Schema ใช้บน Windows ได้แล้ว: `python -m app.contract --write` (ใน `backend/`) เขียน `contracts/telemetry.v1.schema.json` เป็น UTF-8 ไม่มี BOM และใช้ LF เอง เดิมใช้ `>` redirect ซึ่ง PowerShell 5.1 บันทึกเป็น UTF-16 หรือ UTF-8 แบบมี BOM ทำให้ `json.loads` อ่านไม่ได้และ test schema ไม่ผ่าน (เพิ่ม test 2 ข้อ)
@@ -21,6 +27,7 @@
 - Flutter: `flutter analyze` 0 issue, `flutter test` 9/9 และ `flutter run -d chrome` แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" เจ้าของโปรเจกต์ตรวจหน้าจอแล้วว่าแสดงถูกต้อง รวมถึงภาษาไทย (V-1)
 - Android emulator (Android 17 / API 37, AVD `AgriTwin_API_37`) กับ `API_BASE_URL=http://10.0.2.2:8000`: APK ทั้ง debug และ release หลังแก้ APP-0 แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง" ส่วน release ก่อนแก้เรียก API ไม่ได้ (APP-0)
 - 10 พ.ย. 2569: History API กับฐาน dev จริง (ได้ 200/404/422 ตามเอกสาร) และกราฟย้อนหลังใน web build บน Chrome ของ Claude desktop กับ API จริง: เปิดจาก tile ได้ และช่วง 24 ชม./7 วันส่ง `from` ถูกต้อง (BE-1, APP-1) ยังไม่ได้ลองกราฟบน Android
+- 10 พ.ย. 2569 (UI-2): `flutter analyze` 0 issue, `flutter test` 51 ข้อ, `pytest` 55 ข้อบน `agritwin_test` (backend ไม่เปลี่ยน) และ Android emulator (API 37) กับ API + simulator จริง: Dashboard และหน้ากราฟ 24 ชม./7 วัน/30 วัน, แตะค่าล่าสุดเพื่อสลับเซนเซอร์, หยุด uvicorn แล้วทั้งสองหน้าขึ้นแถบ stale โดยข้อมูลและกราฟยังอยู่, เปิดแอปตอน API ล่มขึ้นหน้า error, ปุ่ม "ลองใหม่" ในการ์ดกราฟโหลดได้เมื่อ API กลับมา และ Dashboard กลับมาเองในรอบ poll ถัดไป, อุปกรณ์ที่ไม่มีข้อมูลใน 24 ชม. แสดงสถานะว่างพร้อม "ออฟไลน์" และวันที่อัปเดตล่าสุด (เป็นครั้งแรกที่ลองหน้ากราฟบน Android)
 
 ### ข้อจำกัดที่พบเพิ่ม
 - ดูหัวข้อ "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`: `localhost` ช้าบน Windows, มือถือจริงต้องรัน uvicorn ด้วย `--host 0.0.0.0`, พอร์ต Docker เปิดบนทุก interface, deprecation warning ของ Starlette และ release build ยังใช้ `http://` ได้

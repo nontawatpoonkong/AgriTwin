@@ -29,17 +29,19 @@ List<List<LatestReading>> splitAtGaps(List<LatestReading> readings) {
   return segments;
 }
 
-/// Line chart of one sensor's readings (oldest first, at least one). Suspect values get a marker.
+/// Area chart of one sensor's readings (oldest first, at least one), in the style of the design's
+/// sensor chart. Suspect values get a marker, the newest reading a ring, and gaps break the line.
+/// [compact] drops the value axis for the dashboard trend card.
 /// Drawn with a CustomPainter so the app needs no chart package (AGENTS.md rule 9).
 class HistoryChart extends StatelessWidget {
-  const HistoryChart({super.key, required this.readings, required this.decimals});
+  const HistoryChart({super.key, required this.readings, required this.decimals, this.compact = false});
 
   final List<LatestReading> readings;
   final int decimals;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final values = readings.map((r) => r.value);
     final low = values.reduce(math.min);
     final high = values.reduce(math.max);
@@ -47,7 +49,7 @@ class HistoryChart extends StatelessWidget {
       label: 'กราฟ ${readings.length} ค่า ต่ำสุด ${low.toStringAsFixed(decimals)} '
           'สูงสุด ${high.toStringAsFixed(decimals)}',
       child: SizedBox(
-        height: AppTokens.chartHeight,
+        height: compact ? AppTokens.trendChartHeight : AppTokens.chartHeight,
         width: double.infinity,
         child: CustomPaint(
           painter: _HistoryChartPainter(
@@ -55,9 +57,7 @@ class HistoryChart extends StatelessWidget {
             low: low,
             high: high,
             decimals: decimals,
-            lineColor: theme.colorScheme.primary,
-            gridColor: theme.colorScheme.outlineVariant,
-            labelStyle: theme.textTheme.bodySmall ?? const TextStyle(fontSize: AppTokens.captionFontSize),
+            compact: compact,
           ),
         ),
       ),
@@ -71,59 +71,63 @@ class _HistoryChartPainter extends CustomPainter {
     required this.low,
     required this.high,
     required this.decimals,
-    required this.lineColor,
-    required this.gridColor,
-    required this.labelStyle,
+    required this.compact,
   });
 
   final List<List<LatestReading>> segments;
   final double low;
   final double high;
   final int decimals;
-  final Color lineColor;
-  final Color gridColor;
-  final TextStyle labelStyle;
+  final bool compact;
+
+  static const _axisStyle = TextStyle(fontSize: AppTokens.fontAxis, color: AppTokens.textMuted);
+  static const _timeStyle = TextStyle(fontSize: AppTokens.fontAxis, color: AppTokens.textSecondary);
 
   @override
   void paint(Canvas canvas, Size size) {
     final first = segments.first.first.measuredAt;
     final last = segments.last.last.measuredAt;
-    final startLabel = _label(formatDayTime(first));
-    final endLabel = _label(formatDayTime(last));
+    final span = last.difference(first).inMilliseconds;
+    // Up to a day and a half reads best as clock times; longer ranges as dates.
+    final timeLabel = span <= const Duration(hours: 36).inMilliseconds ? formatHourMinute : formatDayMonth;
+    final labelHeight = _label('0', _timeStyle).height;
+    const ring = AppTokens.chartEndRingRadius;
     final plot = Rect.fromLTRB(
-      AppTokens.chartLabelWidth,
+      compact ? ring : AppTokens.chartLabelWidth,
       AppTokens.space2,
-      size.width - AppTokens.space1,
-      size.height - startLabel.height - AppTokens.space2,
+      size.width - ring - 1,
+      size.height - labelHeight - AppTokens.space1,
     );
 
     // Leave room above and below the data; a flat series gets a band so it sits mid-chart.
     final spread = high - low;
-    final pad = spread == 0 ? math.max(high.abs() * 0.05, 1.0) : spread * 0.1;
+    final pad = spread == 0 ? math.max(high.abs() * 0.05, 1.0) : spread * 0.12;
     final bottom = low - pad;
     final top = high + pad;
     double yOf(double v) => plot.bottom - (v - bottom) / (top - bottom) * plot.height;
-
-    final span = last.difference(first).inMilliseconds;
     double xOf(DateTime t) =>
         span == 0 ? plot.center.dx : plot.left + t.difference(first).inMilliseconds / span * plot.width;
 
-    final grid = Paint()
-      ..color = gridColor
-      ..strokeWidth = AppTokens.chartGridLineWidth;
-    for (final v in {low, (low + high) / 2, high}) {
-      final y = yOf(v);
-      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
-      final label = _label(v.toStringAsFixed(decimals));
-      label.paint(canvas, Offset(plot.left - label.width - AppTokens.space1, y - label.height / 2));
+    if (!compact) {
+      final grid = Paint()
+        ..color = AppTokens.border
+        ..strokeWidth = AppTokens.chartGridLineWidth;
+      for (final v in {low, (low + high) / 2, high}) {
+        final y = yOf(v);
+        canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
+        final label = _label(v.toStringAsFixed(decimals), _axisStyle);
+        label.paint(canvas, Offset(plot.left - label.width - AppTokens.space2, y - label.height / 2));
+      }
     }
 
+    final fill = Paint()..color = AppTokens.chartFill;
     final line = Paint()
-      ..color = lineColor
+      ..color = AppTokens.primary
       ..strokeWidth = AppTokens.chartLineWidth
       ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round;
-    final dot = Paint()..color = lineColor;
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    final dot = Paint()..color = AppTokens.primary;
     for (final segment in segments) {
       if (segment.length == 1) {
         final r = segment.single;
@@ -134,6 +138,11 @@ class _HistoryChartPainter extends CustomPainter {
       for (final r in segment.skip(1)) {
         path.lineTo(xOf(r.measuredAt), yOf(r.value));
       }
+      final area = Path.from(path)
+        ..lineTo(xOf(segment.last.measuredAt), plot.bottom)
+        ..lineTo(xOf(segment.first.measuredAt), plot.bottom)
+        ..close();
+      canvas.drawPath(area, fill);
       canvas.drawPath(path, line);
     }
 
@@ -142,14 +151,32 @@ class _HistoryChartPainter extends CustomPainter {
       canvas.drawCircle(Offset(xOf(r.measuredAt), yOf(r.value)), AppTokens.chartPointRadius, suspect);
     }
 
-    startLabel.paint(canvas, Offset(plot.left, plot.bottom + AppTokens.space1));
-    if (span > 0) {
-      endLabel.paint(canvas, Offset(plot.right - endLabel.width, plot.bottom + AppTokens.space1));
+    // Ring on the newest reading, as in the design.
+    final newest = segments.last.last;
+    final ringCenter = Offset(xOf(newest.measuredAt), yOf(newest.value));
+    canvas.drawCircle(ringCenter, ring, Paint()..color = AppTokens.surface);
+    canvas.drawCircle(
+      ringCenter,
+      ring,
+      Paint()
+        ..color = AppTokens.primary
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = AppTokens.chartLineWidth,
+    );
+
+    // Time labels: start, middle and end of the data (one label when there is a single time).
+    final fractions = span == 0 ? const [0.5] : const [0.0, 0.5, 1.0];
+    for (final f in fractions) {
+      final t = first.add(Duration(milliseconds: (span * f).round()));
+      final label = _label(timeLabel(t), _timeStyle);
+      final x = plot.left + f * plot.width;
+      final dx = f == 0 ? x : (f == 1 ? x - label.width : x - label.width / 2);
+      label.paint(canvas, Offset(dx.clamp(0, size.width - label.width), plot.bottom + AppTokens.space1));
     }
   }
 
-  TextPainter _label(String text) =>
-      TextPainter(text: TextSpan(text: text, style: labelStyle), textDirection: TextDirection.ltr)..layout();
+  TextPainter _label(String text, TextStyle style) =>
+      TextPainter(text: TextSpan(text: text, style: style), textDirection: TextDirection.ltr)..layout();
 
   @override
   bool shouldRepaint(_HistoryChartPainter old) =>
@@ -157,7 +184,5 @@ class _HistoryChartPainter extends CustomPainter {
       old.low != low ||
       old.high != high ||
       old.decimals != decimals ||
-      old.lineColor != lineColor ||
-      old.gridColor != gridColor ||
-      old.labelStyle != labelStyle;
+      old.compact != compact;
 }

@@ -19,7 +19,8 @@ abstract class DashboardSource {
   Future<DashboardLatest> fetchDashboard();
 }
 
-/// What the history chart needs (BE-1 History API). Tests provide a fake implementation.
+/// What the sensor page needs: history (BE-1 History API) and one device's latest values.
+/// Tests provide a fake implementation.
 abstract class HistorySource {
   /// Readings of [sensorType] on [deviceId] measured at or after [from] (and before [to] if given),
   /// oldest first. [limit] defaults to the largest page the API accepts.
@@ -30,6 +31,9 @@ abstract class HistorySource {
     DateTime? to,
     int? limit,
   });
+
+  /// Status and latest value per sensor of one device (GET /api/v1/devices/{id}/latest).
+  Future<DeviceLatest> fetchDeviceLatest(String deviceId);
 }
 
 class AgriTwinApi implements DashboardSource, HistorySource {
@@ -72,6 +76,16 @@ class AgriTwinApi implements DashboardSource, HistorySource {
     final json = await _getJson(uri);
     try {
       return ReadingHistory.fromJson(json);
+    } on Object {
+      throw const ApiException('ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API');
+    }
+  }
+
+  @override
+  Future<DeviceLatest> fetchDeviceLatest(String deviceId) async {
+    final json = await _getJson(Uri.parse('$baseUrl/api/v1/devices/${Uri.encodeComponent(deviceId)}/latest'));
+    try {
+      return DeviceLatest.fromJson(json);
     } on Object {
       throw const ApiException('ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API');
     }
