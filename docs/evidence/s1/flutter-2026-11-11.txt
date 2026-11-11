@@ -1,0 +1,119 @@
+Commit: 125d912d13467b154c50c41c65e8a743e3ebc9ec
+Date: 2026-11-11 (Asia/Bangkok)
+
+===== flutter analyze =====
+Resolving dependencies...
+Downloading packages...
+  clock 1.1.2 (1.1.3 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.17.0 (1.19.0 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.10 (0.7.15 available)
+  vector_math 2.2.0 (2.4.4 available)
+  web 1.1.1 (1.1.2 available)
+Got dependencies!
+10 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing app...
+No issues found! (ran in 3.1s)
+
+===== flutter test =====
+Resolving dependencies...
+Downloading packages...
+  clock 1.1.2 (1.1.3 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.17.0 (1.19.0 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.10 (0.7.15 available)
+  vector_math 2.2.0 (2.4.4 available)
+  web 1.1.1 (1.1.2 available)
+Got dependencies!
+10 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading <worktree>/app/test/api_client_io_test.dart
+00:00 +0: <worktree>/app/test/api_client_io_test.dart: dart:io reports the dropped connection as a ClientException
+00:00 +1: <worktree>/app/test/api_client_io_test.dart: AgriTwinApi retries the dropped connection and gets the data
+00:00 +2: <worktree>/app/test/api_client_test.dart: parses dashboard JSON and decodes UTF-8 units without a charset header
+00:00 +3: <worktree>/app/test/api_client_test.dart: redactForLog masks credentials in URLs and the values of credential-like query parameters
+00:00 +4: <worktree>/app/test/api_client_test.dart: redactForLog keeps ordinary text and cuts long text
+00:00 +5: <worktree>/app/test/api_client_test.dart: a user name and password in the API address never reach the log or the exception
+00:00 +6: <worktree>/app/test/api_client_test.dart: an error page that is not the API's JSON is not copied into the log
+00:00 +7: <worktree>/app/test/api_client_test.dart: a 200 answer that is not JSON is not copied into the log either
+00:00 +8: <worktree>/app/test/format_test.dart: formatClockOrDay adds the date only when the time is not from today
+00:00 +9: <worktree>/app/test/format_test.dart: formatClockOrDay adds the date only when the time is not from today
+00:00 +10: <worktree>/app/test/format_test.dart: formatClockOrDay adds the date only when the time is not from today
+00:00 +11: <worktree>/app/test/api_client_test.dart: a server that never answers times out with a short message
+00:00 +12: <worktree>/app/test/api_client_test.dart: a server that never answers times out with a short message
+00:00 +13: <worktree>/app/test/api_client_test.dart: a server that never answers times out with a short message
+00:00 +14: <worktree>/app/test/api_client_test.dart: a dropped connection is retried once and the data still arrives
+00:00 +15: <worktree>/app/test/api_client_test.dart: a connection that keeps failing gives a short Thai message after one retry; the reason is logged
+00:00 +16: <worktree>/app/test/api_client_test.dart: an HTTP error status is not retried
+AgriTwinApi: GET http://api.test/api/v1/dashboard/latest failed: HTTP 500, 4 bytes of unknown content type
+00:00 +17: <worktree>/app/test/history_test.dart: AgriTwinApi fetchHistory asks for one sensor from a UTC start time and parses the readings
+00:00 +18: <worktree>/app/test/history_test.dart: AgriTwinApi fetchDeviceLatest reads the existing latest endpoint
+00:00 +19: <worktree>/app/test/history_test.dart: AgriTwinApi HTTP errors and contract breaks become ApiException
+AgriTwinApi: GET http://api.test/api/v1/devices/x/readings?sensor_type=soil_moisture&from=2026-11-10T12%3A00%3A00.000Z&limit=5000 failed: HTTP 404, detail: nope
+AgriTwinApi: GET http://api.test/api/v1/devices/x/latest failed: HTTP 404, detail: nope
+AgriTwinApi: GET http://api.test/api/v1/devices/x/readings?sensor_type=soil_moisture&from=2026-11-10T12%3A00%3A00.000Z&limit=5000 failed: type 'Null' is not a subtype of type 'String' in type cast
+AgriTwinApi: GET http://api.test/api/v1/devices/x/latest failed: type 'Null' is not a subtype of type 'String' in type cast
+00:00 +20: <worktree>/app/test/history_test.dart: ReadingHistory.extendedWith appends only readings after the newest one and drops those before the window
+00:00 +21: <worktree>/app/test/history_test.dart: ReadingHistory.extendedWith an empty history takes every newer reading in the window
+00:00 +22: <worktree>/app/test/history_test.dart: splitAtGaps breaks the line where data is missing for much longer than usual
+00:00 +23: <worktree>/app/test/history_test.dart: splitAtGaps keeps a steady series in one piece
+00:00 +24: <worktree>/app/test/history_test.dart: SensorHistoryPage shows a spinner while loading, then value, range, chart and simulated badge
+00:01 +25: <worktree>/app/test/layout_test.dart: dashboard fits a small 320x640 phone at text scale 1.0
+00:01 +26: <worktree>/app/test/layout_test.dart: dashboard fits a small 320x640 phone at text scale 1.0
+00:01 +27: <worktree>/app/test/widget_test.dart: shows latest readings, online status and simulated-data badge
+00:01 +28: <worktree>/app/test/history_test.dart: SensorHistoryPage a last-seen time from an earlier day shows its date
+00:01 +29: <worktree>/app/test/layout_test.dart: stale banner fits a small 320x640 phone at text scale 1.0
+00:01 +30: <worktree>/app/test/layout_test.dart: stale banner fits a small 320x640 phone at text scale 1.0
+00:01 +31: <worktree>/app/test/history_test.dart: SensorHistoryPage real gateway data has no simulated badge
+00:01 +32: <worktree>/app/test/widget_test.dart: offline device and suspect value are shown
+00:01 +33: <worktree>/app/test/layout_test.dart: sensor page fits a small 320x640 phone at text scale 1.0
+00:01 +34: <worktree>/app/test/layout_test.dart: sensor page fits a small 320x640 phone at text scale 1.0
+00:01 +35: <worktree>/app/test/layout_test.dart: sensor page fits a small 320x640 phone at text scale 1.0
+00:01 +36: <worktree>/app/test/history_test.dart: SensorHistoryPage empty range says there is no data
+00:01 +37: <worktree>/app/test/history_test.dart: SensorHistoryPage empty range says there is no data
+00:01 +38: <worktree>/app/test/layout_test.dart: dashboard fits a small 320x640 phone at text scale 1.3
+00:01 +39: <worktree>/app/test/widget_test.dart: first-load error shows the short reason only, and retry brings the data
+00:01 +40: <worktree>/app/test/widget_test.dart: first-load error shows the short reason only, and retry brings the data
+00:01 +41: <worktree>/app/test/layout_test.dart: stale banner fits a small 320x640 phone at text scale 1.3
+00:02 +42: <worktree>/app/test/history_test.dart: SensorHistoryPage asks for the last 24 hours, 7 days and 30 days
+00:02 +43: <worktree>/app/test/history_test.dart: SensorHistoryPage asks for the last 24 hours, 7 days and 30 days
+00:02 +44: <worktree>/app/test/layout_test.dart: sensor page fits a small 320x640 phone at text scale 1.3
+00:02 +45: <worktree>/app/test/widget_test.dart: keeps last data and shows the reason in a banner when a later poll fails
+00:02 +46: <worktree>/app/test/history_test.dart: SensorHistoryPage tapping a latest value switches the chart to that sensor
+00:02 +47: <worktree>/app/test/layout_test.dart: dashboard fits a large 412x915 phone at text scale 1.0
+00:02 +48: <worktree>/app/test/widget_test.dart: the banner goes away and new values show when a later poll succeeds
+00:02 +49: <worktree>/app/test/widget_test.dart: the banner goes away and new values show when a later poll succeeds
+00:02 +50: <worktree>/app/test/layout_test.dart: stale banner fits a large 412x915 phone at text scale 1.0
+00:02 +51: <worktree>/app/test/history_test.dart: SensorHistoryPage truncated history says only the newest readings are shown
+00:02 +52: <worktree>/app/test/widget_test.dart: trend card loads 24 hours, skips polls that bring nothing new, and opens the sensor page
+00:02 +53: <worktree>/app/test/widget_test.dart: trend card loads 24 hours, skips polls that bring nothing new, and opens the sensor page
+00:02 +54: <worktree>/app/test/widget_test.dart: trend card loads 24 hours, skips polls that bring nothing new, and opens the sensor page
+00:02 +55: <worktree>/app/test/widget_test.dart: trend card loads 24 hours, skips polls that bring nothing new, and opens the sensor page
+00:02 +56: <worktree>/app/test/widget_test.dart: trend card loads 24 hours, skips polls that bring nothing new, and opens the sensor page
+00:02 +57: <worktree>/app/test/widget_test.dart: trend card loads 24 hours, skips polls that bring nothing new, and opens the sensor page
+00:02 +58: <worktree>/app/test/layout_test.dart: stale banner fits a large 412x915 phone at text scale 1.3
+00:02 +59: <worktree>/app/test/history_test.dart: tapping a sensor card on the dashboard opens its sensor page
+00:02 +60: <worktree>/app/test/history_test.dart: tapping a sensor card on the dashboard opens its sensor page
+00:02 +61: <worktree>/app/test/history_test.dart: tapping a sensor card on the dashboard opens its sensor page
+00:02 +62: <worktree>/app/test/widget_test.dart: trend card fetches only the readings after its newest point when a poll brings a newer one
+00:02 +63: <worktree>/app/test/widget_test.dart: trend card keeps its last chart and says so when catching up fails
+00:02 +64: <worktree>/app/test/widget_test.dart: trend card makes no request while polls fail, then catches up when the API is back
+00:02 +65: All tests passed!
+
+===== flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:18000 =====
+Wasm dry run succeeded. Consider building and testing your application with the `--wasm` flag.
+Expected to find fonts for (MaterialIcons, packages/cupertino_icons/CupertinoIcons), but found (MaterialIcons).
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 10060 bytes (99.4% reduction).
+Compiling lib\main.dart for the Web... 34.0s
+√ Built build\web
+
+The build succeeded. The CupertinoIcons font warning remains for follow-up; it did not block the captured Dashboard.
