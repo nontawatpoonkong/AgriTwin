@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Design tokens — the ONLY place for colours, spacing, radii and type sizes.
 ///
-/// Values come from the "Design Tokens" frame and the screens of the Figma file
-/// "AgriTwin — Mobile UI Concept | Research Proposal" (file key hGwFuniaKYJQpuV7QEtS9E, read 10 Nov 2026).
-/// Tokens marked "derived" are not in that file; they fill states the concept does not show
-/// (errors, suspect values) or keep small text readable. This is NOT the Kaset App design (task UI-1).
+/// Values are derived from the AgriTwin Figma design: its design-tokens frame and its screens
+/// (task UI-2, read 10 Nov 2026). Tokens marked "derived" are not in the design; they fill states
+/// the concept does not show (errors, suspect values) or keep small text readable. This is NOT the
+/// Kaset App design (task UI-1).
 class AppTokens {
   AppTokens._();
 
