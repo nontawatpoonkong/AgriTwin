@@ -1,0 +1,17 @@
+{
+  "evidence_commit": "125d912d13467b154c50c41c65e8a743e3ebc9ec",
+  "captured_at": "2026-11-11T21:00:32+07:00",
+  "scope": "isolated V-2 demo environment; counters reset when this API process started",
+  "response": {
+    "status": "ok",
+    "database": "up",
+    "mqtt": "connected",
+    "ingest_counts": {
+      "accepted": 16,
+      "duplicate": 10,
+      "rejected": 5,
+      "errors": 0
+    },
+    "server_time": "2026-11-11T14:00:32.176996Z"
+  }
+}
