@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/format.dart';
 import '../../../core/sensor_catalog.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/simulated_badge.dart';
@@ -8,9 +9,13 @@ import '../../../data/api_client.dart';
 import '../../../data/models.dart';
 import '../../history/widgets/history_chart.dart';
 
-/// "sensor · 24 ชม." card on the dashboard (design: TrendCard). Loads the last 24 hours of one
-/// sensor from the History API once, and again whenever [reloadToken] changes (pull to refresh),
-/// not on every 5-second dashboard poll. Tapping it opens the sensor page.
+/// "sensor · 24 ชม." card on the dashboard (design: TrendCard). Tapping it opens the sensor page.
+///
+/// Loads the last 24 hours of one sensor from the History API, then keeps up with the dashboard
+/// polls: when [device] carries a reading of the sensor newer than the chart covers, only the
+/// readings after the chart's newest point are fetched and appended (anything older than 24 hours
+/// is dropped). Polls that bring nothing new, or that fail, cost no request. A failed refresh keeps
+/// the last chart and says so under it. [reloadToken] (pull to refresh) loads the 24 hours again.
 class TrendCard extends StatefulWidget {
   const TrendCard({
     super.key,
@@ -34,9 +39,26 @@ class TrendCard extends StatefulWidget {
 }
 
 class _TrendCardState extends State<TrendCard> {
+  static const _window = Duration(hours: 24);
+
   ReadingHistory? _data;
   String? _error;
   int _request = 0;
+  bool _busy = false;
+
+  /// Measured time of the dashboard's newest reading of this sensor when the chart was last
+  /// loaded: a later one means the chart is behind. Server timestamps only, so the phone's clock
+  /// does not matter here.
+  DateTime? _covered;
+
+  DateTime _now() => (widget.clock ?? DateTime.now)();
+
+  DateTime? get _latestOnDashboard {
+    for (final r in widget.device.readings) {
+      if (r.sensorType == widget.sensorType) return r.measuredAt;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -47,30 +69,69 @@ class _TrendCardState extends State<TrendCard> {
   @override
   void didUpdateWidget(TrendCard old) {
     super.didUpdateWidget(old);
-    if (old.reloadToken != widget.reloadToken ||
-        old.device.deviceId != widget.device.deviceId ||
-        old.sensorType != widget.sensorType) {
+    if (old.device.deviceId != widget.device.deviceId || old.sensorType != widget.sensorType) {
+      _data = null; // never show one sensor's chart under another's title
+      _error = null;
+      _covered = null;
       _load();
+    } else if (old.reloadToken != widget.reloadToken) {
+      _load();
+    } else if (!identical(old.device, widget.device) && !_busy && _isBehind) {
+      // A poll succeeded (each one brings new objects) with a reading the chart does not have.
+      // Rebuilds from failed polls keep the same object, so an unreachable API costs no request.
+      _catchUp();
     }
   }
 
-  Future<void> _load() async {
-    final request = ++_request;
-    final now = (widget.clock ?? DateTime.now)();
-    try {
-      final result = await widget.source.fetchHistory(
+  bool get _isBehind {
+    final latest = _latestOnDashboard;
+    final covered = _covered;
+    return latest != null && (covered == null || latest.isAfter(covered));
+  }
+
+  Future<ReadingHistory> _fetchWindow() => widget.source.fetchHistory(
         deviceId: widget.device.deviceId,
         sensorType: widget.sensorType,
-        from: now.toUtc().subtract(const Duration(hours: 24)),
+        from: _now().toUtc().subtract(_window),
       );
+
+  /// Loads the whole 24 hours; the chart on screen stays until the new one arrives.
+  Future<void> _load() => _run(_fetchWindow);
+
+  /// Fetches only the readings after the chart's newest point and appends them.
+  Future<void> _catchUp() {
+    final data = _data;
+    if (data == null || data.isEmpty) return _load();
+    return _run(() async {
+      final newer = await widget.source.fetchHistory(
+        deviceId: widget.device.deviceId,
+        sensorType: widget.sensorType,
+        from: data.readings.last.measuredAt,
+      );
+      // More new readings than one page holds (a long outage): appending would leave a hole.
+      if (newer.truncated) return _fetchWindow();
+      return data.extendedWith(newer, since: _now().toUtc().subtract(_window));
+    });
+  }
+
+  Future<void> _run(Future<ReadingHistory> Function() fetch) async {
+    final request = ++_request;
+    final latest = _latestOnDashboard;
+    _busy = true;
+    try {
+      final result = await fetch();
       if (!mounted || request != _request) return;
       setState(() {
         _data = result;
         _error = null;
+        _covered = latest;
       });
-    } on Object catch (e) {
+    } on Object catch (e, stack) {
       if (!mounted || request != _request) return;
-      setState(() => _error = e is ApiException ? e.message : '$e');
+      // Keeps _data: the last good chart stays on screen.
+      setState(() => _error = errorMessageFor(e, stack, where: 'TrendCard'));
+    } finally {
+      if (request == _request) _busy = false;
     }
   }
 
@@ -121,6 +182,16 @@ class _TrendCardState extends State<TrendCard> {
               (final ReadingHistory d, _) => HistoryChart(readings: d.readings, decimals: info.decimals, compact: true),
             },
           ),
+          if (data != null && _error != null) ...[
+            const SizedBox(height: AppTokens.space1),
+            Text(
+              data.isEmpty
+                  ? 'อัปเดตกราฟไม่ได้'
+                  : 'อัปเดตกราฟไม่ได้ · ข้อมูลถึง ${formatClockOrDay(data.readings.last.measuredAt, _now())}',
+              maxLines: 2,
+              style: theme.textTheme.labelSmall?.copyWith(color: AppTokens.staleBannerFg),
+            ),
+          ],
         ],
       ),
     );

@@ -87,12 +87,9 @@ class SensorHistoryController extends ChangeNotifier {
       if (device != null) _device = device;
       error = null;
       lastSuccessAt = _clock();
-    } on ApiException catch (e) {
+    } on Object catch (e, stack) {
       if (request != _request) return;
-      error = e.message;
-    } on Object catch (e) {
-      if (request != _request) return;
-      error = 'เกิดข้อผิดพลาด: $e';
+      error = errorMessageFor(e, stack, where: 'SensorHistoryController');
     } finally {
       if (request == _request) {
         loading = false;

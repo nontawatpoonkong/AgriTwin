@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../format.dart';
 import '../theme/tokens.dart';
 
-/// Shown above data that stays on screen after a later request failed (stale/offline state).
-/// The technical reason is cut to two lines so the data stays in view on a phone; the full text
-/// is still in the widget tree for tests and screen readers.
+/// Shown above data that stays on screen after a later request failed (stale/offline state):
+/// the short reason ([error], an `ApiException.message`) and when the data on screen was loaded.
+/// Technical details are only in the log.
 class StaleBanner extends StatelessWidget {
   const StaleBanner({super.key, required this.error, required this.lastSuccessAt, this.now});
 
@@ -41,13 +41,13 @@ class StaleBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กำลังแสดงข้อมูลล่าสุด$when',
-                  style: _style.copyWith(fontWeight: FontWeight.w600),
-                ),
-                Text(
                   error,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  style: _style.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'กำลังแสดงข้อมูลล่าสุด$when',
                   style: _style.copyWith(fontSize: AppTokens.fontCaption),
                 ),
               ],

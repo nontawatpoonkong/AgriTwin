@@ -291,11 +291,17 @@ class _ErrorView extends StatelessWidget {
         children: [
           const Icon(Icons.cloud_off, size: 48, color: AppTokens.error),
           const SizedBox(height: AppTokens.space3),
-          Text('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', style: theme.textTheme.titleMedium),
+          // The short reason only; the technical detail is in the log (AgriTwinApi).
+          Text(message, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppTokens.space2),
-          Text(message, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+          Text(
+            'ยังโหลดข้อมูลไม่ได้ ตรวจว่าเซิร์ฟเวอร์เปิดอยู่ แล้วกดลองใหม่',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall,
+          ),
           const SizedBox(height: AppTokens.space1),
-          Text('API: ${AppConfig.apiBaseUrl}', style: theme.textTheme.bodySmall),
+          // The address the app calls, so a wrong API_BASE_URL is easy to spot when testing.
+          Text('เซิร์ฟเวอร์: ${AppConfig.apiBaseUrl}', textAlign: TextAlign.center, style: theme.textTheme.labelSmall),
           const SizedBox(height: AppTokens.space4),
           FilledButton(onPressed: onRetry, child: const Text('ลองใหม่')),
         ],

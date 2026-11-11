@@ -52,11 +52,12 @@ void main() {
         expect(find.textContaining('แปลงทดลองมันสำปะหลัง'), findsWidgets);
       });
 
-      testWidgets('stale banner with a long error fits a ${phone.key} phone at text scale $scale', (tester) async {
-        // The real message from an Android emulator when the API is down.
-        const longError = 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (ClientException with SocketException: Connection refused '
+      testWidgets('stale banner fits a ${phone.key} phone at text scale $scale', (tester) async {
+        // The real error from an Android emulator when the API is down: only the short reason
+        // reaches the screen; the rest is the detail that goes to the log.
+        const detail = 'ClientException with SocketException: Connection refused '
             '(OS Error: Connection refused, errno = 111), address = 10.0.2.2, port = 59478, '
-            'uri=http://10.0.2.2:8000/api/v1/dashboard/latest)';
+            'uri=http://10.0.2.2:8000/api/v1/dashboard/latest';
         await pumpOn(
           tester,
           phone.value,
@@ -64,7 +65,7 @@ void main() {
           DashboardPage(
             source: FakeSource((call) async {
               if (call == 0) return DashboardLatest.fromJson(longNameDashboard());
-              throw const ApiException(longError);
+              throw const ApiException('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', detail: detail);
             }),
             historySource: FakeHistorySource((_) async => ReadingHistory.fromJson(historyJson())),
           ),
@@ -73,8 +74,9 @@ void main() {
         await tester.pump();
 
         expect(tester.takeException(), isNull);
+        expect(find.text('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'), findsOneWidget);
         expect(find.textContaining('กำลังแสดงข้อมูลล่าสุด'), findsOneWidget);
-        expect(tester.widget<Text>(find.text(longError)).maxLines, 2); // detail cut, data stays in view
+        expect(find.textContaining('SocketException'), findsNothing);
         expect(find.text('อุปกรณ์ออนไลน์'), findsOneWidget); // the summary card is still shown below it
       });
 

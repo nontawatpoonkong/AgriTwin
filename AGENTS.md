@@ -40,8 +40,9 @@ cd app; flutter analyze; flutter test
    "ข้อมูลจำลอง". Never present simulated values as field results.
 5. **Bad data:** invalid messages go to `ingest_rejects`, never into `sensor_readings`.
 6. **UI styling:** colours/spacing/radii/type sizes live only in `app/lib/core/theme/tokens.dart`.
-   Current values are placeholders. Do not claim a design matches Kaset App without reference images
-   from the owner.
+   Current values come from the owner's Figma concept "AgriTwin — Mobile UI Concept | Research
+   Proposal" (Design Tokens frame, task UI-2). Do not claim a design matches Kaset App without
+   reference images from the owner.
 7. **Flutter screens** must handle loading, empty, error and stale/offline states.
 8. **Secrets:** never commit `.env` files or passwords (`infra/.env`, `backend/.env` are git-ignored). Add new
    settings to `config.py` + the matching `.env.example` with placeholder values only.

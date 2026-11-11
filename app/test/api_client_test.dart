@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:agritwin_app/data/api_client.dart';
@@ -28,20 +29,50 @@ void main() {
     expect(temp.value, 28.3);
   });
 
-  test('non-200 becomes ApiException', () async {
+  test('an HTTP error keeps the status code in the message and the response body in the log', () async {
     final api = AgriTwinApi(
       baseUrl: 'http://api.test',
-      client: MockClient((_) async => http.Response('boom', 500)),
+      client: MockClient((_) async => http.Response('{"detail": "database unavailable"}', 500)),
     );
-    await expectLater(api.fetchDashboard(), throwsA(isA<ApiException>()));
+    final logs = await withCapturedLogs(() async {
+      await expectLater(
+        api.fetchDashboard(),
+        throwsA(isA<ApiException>()
+            .having((e) => e.message, 'message', 'เซิร์ฟเวอร์ตอบกลับรหัส 500')
+            .having((e) => e.detail, 'detail', contains('database unavailable'))),
+      );
+    });
+    expect(logs, [
+      allOf(contains('GET http://api.test/api/v1/dashboard/latest failed'), contains('database unavailable')),
+    ]);
   });
 
-  test('payload that breaks the contract becomes ApiException', () async {
+  test('payload that breaks the contract gives a short message; the parse error is logged', () async {
     final api = AgriTwinApi(
       baseUrl: 'http://api.test',
       client: MockClient((_) async => http.Response('{"devices": "nope"}', 200)),
     );
-    await expectLater(api.fetchDashboard(), throwsA(isA<ApiException>()));
+    final logs = await withCapturedLogs(() async {
+      await expectLater(
+        api.fetchDashboard(),
+        throwsA(isA<ApiException>().having((e) => e.message, 'message', 'ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API')),
+      );
+    });
+    expect(logs.single, contains('GET http://api.test/api/v1/dashboard/latest failed'));
+  });
+
+  testWidgets('a server that never answers times out with a short message', (tester) async {
+    final api = AgriTwinApi(
+      baseUrl: 'http://api.test',
+      client: MockClient((_) => Completer<http.Response>().future),
+    );
+    Object? error;
+    final logs = await withCapturedLogs(() async {
+      unawaited(api.fetchDashboard().then<void>((_) {}, onError: (Object e) => error = e));
+      await tester.pump(const Duration(seconds: 9)); // past the 8 s timeout
+    });
+    expect(error, isA<ApiException>().having((e) => e.message, 'message', 'เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)'));
+    expect(logs.single, contains('no response within 8 s'));
   });
 
   test('a dropped connection is retried once and the data still arrives', () async {
@@ -63,18 +94,28 @@ void main() {
     expect(data.devices.single.deviceId, 'sim-node-01');
   });
 
-  test('a connection that keeps failing becomes ApiException after one retry', () async {
+  test('a connection that keeps failing gives a short Thai message after one retry; the reason is logged',
+      () async {
     var calls = 0;
     final api = AgriTwinApi(
       baseUrl: 'http://api.test',
-      client: MockClient((_) async {
+      client: MockClient((request) async {
         calls++;
-        throw http.ClientException('Connection refused');
+        throw http.ClientException('SocketException: Connection refused (OS Error: errno = 111)', request.url);
       }),
     );
 
-    await expectLater(api.fetchDashboard(), throwsA(isA<ApiException>()));
+    final logs = await withCapturedLogs(() async {
+      await expectLater(
+        api.fetchDashboard(),
+        throwsA(isA<ApiException>()
+            .having((e) => e.message, 'message', 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้')
+            .having((e) => e.detail, 'detail', contains('Connection refused'))),
+      );
+    });
     expect(calls, 2);
+    expect(logs, hasLength(1)); // one line per failed call, not per attempt
+    expect(logs.single, allOf(contains('api/v1/dashboard/latest'), contains('Connection refused')));
   });
 
   test('an HTTP error status is not retried', () async {

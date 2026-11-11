@@ -112,6 +112,22 @@ class ReadingHistory {
   bool get hasSimulated => readings.any((r) => r.isSimulated);
   int get suspectCount => readings.where((r) => r.isSuspect).length;
 
+  /// This history with the readings of [newer] measured after its newest one appended, and every
+  /// reading measured before [since] dropped. Lets a chart keep up by fetching only new readings.
+  ReadingHistory extendedWith(ReadingHistory newer, {required DateTime since}) {
+    final newest = readings.isEmpty ? null : readings.last.measuredAt;
+    return ReadingHistory(
+      deviceId: deviceId,
+      sensorType: sensorType,
+      limit: limit,
+      truncated: truncated,
+      readings: [
+        ...readings,
+        ...newer.readings.where((r) => newest == null || r.measuredAt.isAfter(newest)),
+      ].where((r) => !r.measuredAt.isBefore(since)).toList(),
+    );
+  }
+
   factory ReadingHistory.fromJson(Map<String, dynamic> json) => ReadingHistory(
         deviceId: json['device_id'] as String,
         sensorType: json['sensor_type'] as String?,

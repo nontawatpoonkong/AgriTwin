@@ -1,17 +1,33 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'models.dart';
 
+/// A failed API call. [message] is short Thai text for the screen; [detail] keeps the technical
+/// reason (exception text, HTTP status, body) for the log and is never shown to the user.
 class ApiException implements Exception {
-  const ApiException(this.message);
+  const ApiException(this.message, {this.detail});
 
   final String message;
+  final String? detail;
 
   @override
   String toString() => message;
+}
+
+/// Shown when something other than an [ApiException] goes wrong while loading data.
+const unexpectedErrorMessage = 'เกิดข้อผิดพลาดที่ไม่คาดคิด';
+
+/// Short Thai text to show for [error]. Anything that is not an [ApiException] is written to the
+/// log with its stack trace and shown as [unexpectedErrorMessage], so no technical text reaches
+/// the screen. [where] names the caller in the log.
+String errorMessageFor(Object error, StackTrace stack, {required String where}) {
+  if (error is ApiException) return error.message;
+  debugPrint('$where: unexpected error: $error\n$stack');
+  return unexpectedErrorMessage;
 }
 
 /// What the dashboard needs. Tests provide a fake implementation.
@@ -49,12 +65,8 @@ class AgriTwinApi implements DashboardSource, HistorySource {
 
   @override
   Future<DashboardLatest> fetchDashboard() async {
-    final json = await _getJson(Uri.parse('$baseUrl/api/v1/dashboard/latest'));
-    try {
-      return DashboardLatest.fromJson(json);
-    } on Object {
-      throw const ApiException('ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API');
-    }
+    final uri = Uri.parse('$baseUrl/api/v1/dashboard/latest');
+    return _parse(uri, await _getJson(uri), DashboardLatest.fromJson);
   }
 
   @override
@@ -73,34 +85,38 @@ class AgriTwinApi implements DashboardSource, HistorySource {
         'limit': '${limit ?? maxHistoryLimit}',
       },
     );
-    final json = await _getJson(uri);
-    try {
-      return ReadingHistory.fromJson(json);
-    } on Object {
-      throw const ApiException('ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API');
-    }
+    return _parse(uri, await _getJson(uri), ReadingHistory.fromJson);
   }
 
   @override
   Future<DeviceLatest> fetchDeviceLatest(String deviceId) async {
-    final json = await _getJson(Uri.parse('$baseUrl/api/v1/devices/${Uri.encodeComponent(deviceId)}/latest'));
+    final uri = Uri.parse('$baseUrl/api/v1/devices/${Uri.encodeComponent(deviceId)}/latest');
+    return _parse(uri, await _getJson(uri), DeviceLatest.fromJson);
+  }
+
+  T _parse<T>(Uri uri, Map<String, dynamic> json, T Function(Map<String, dynamic>) fromJson) {
     try {
-      return DeviceLatest.fromJson(json);
-    } on Object {
-      throw const ApiException('ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API');
+      return fromJson(json);
+    } on Object catch (e) {
+      throw _failure(uri, 'ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API', '$e');
     }
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
     final res = await _get(uri);
     if (res.statusCode != 200) {
-      throw ApiException('เซิร์ฟเวอร์ตอบกลับรหัส ${res.statusCode}');
+      final body = utf8.decode(res.bodyBytes, allowMalformed: true);
+      throw _failure(
+        uri,
+        'เซิร์ฟเวอร์ตอบกลับรหัส ${res.statusCode}',
+        'HTTP ${res.statusCode}: ${body.length > 300 ? '${body.substring(0, 300)}…' : body}',
+      );
     }
     try {
       // Decode bytes as UTF-8 explicitly: the server sends "°C" and may omit the charset.
       return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    } on Object {
-      throw const ApiException('อ่านข้อมูลจากเซิร์ฟเวอร์ไม่ได้');
+    } on Object catch (e) {
+      throw _failure(uri, 'อ่านข้อมูลจากเซิร์ฟเวอร์ไม่ได้', '$e');
     }
   }
 
@@ -108,10 +124,17 @@ class AgriTwinApi implements DashboardSource, HistorySource {
     try {
       return await _getRetryingOnce(uri);
     } on TimeoutException {
-      throw const ApiException('เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)');
+      throw _failure(uri, 'เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)', 'no response within ${_timeout.inSeconds} s');
     } on Object catch (e) {
-      throw ApiException('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ($e)');
+      throw _failure(uri, 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', '$e');
     }
+  }
+
+  /// Logs the technical reason of a failed call (console of `flutter run`, or `adb logcat -s flutter`
+  /// on Android) and returns the exception whose short [message] the screens show.
+  ApiException _failure(Uri uri, String message, String detail) {
+    debugPrint('AgriTwinApi: GET $uri failed: $detail');
+    return ApiException(message, detail: detail);
   }
 
   /// GET is idempotent, so one connection-level failure is retried on a new connection.
