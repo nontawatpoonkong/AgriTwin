@@ -43,6 +43,7 @@
 - **Dashboard ยัง poll ขณะเปิดหน้ากราฟทับอยู่:** หน้า Dashboard ยังอยู่ใน stack จึง poll ทุก 5 วินาที และการ์ดแนวโน้มดึงค่าใหม่ต่อ (คำขอเล็ก) เกี่ยวกับงาน APP-2
 - **รายละเอียด error อยู่ใน log:** จอแสดงแค่เหตุผลสั้น ๆ ภาษาไทย ส่วนชนิดและข้อความของ exception, URL, รหัส HTTP และ `detail` จาก error ของ API อยู่ใน console ของ `flutter run` หรือ `adb logcat -s flutter` (บรรทัด `AgriTwinApi: GET ... failed: ...`) ก่อนเขียน log จะปิด `user:password@` ใน URL และค่าของ query ที่ชื่อดูเหมือนรหัส (token, key, secret, password, auth, sig) เป็น `***` แล้วตัดเหลือ 300 ตัวอักษร ส่วน body ที่ไม่ใช่ JSON error ของ API (เช่น หน้า proxy หรือหน้า login Wi-Fi) และข้อความต้นฉบับใน `FormatException` จะไม่ถูกคัดลอกลง log หน้า error ตอนเปิดแอปยังแสดงที่อยู่เซิร์ฟเวอร์ไว้หนึ่งบรรทัด เพื่อให้เห็นเมื่อตั้ง `API_BASE_URL` ผิด
 - **file key ของ Figma อยู่ในประวัติ Git:** ลบออกจากคอมเมนต์ใน `tokens.dart` แล้ว แต่ commit `580c58d` ที่ push ไปแล้วยังมี key อยู่ และแก้ประวัติที่ push แล้วไม่ได้ ถ้าไฟล์ Figma เปิดให้ "ทุกคนที่มีลิงก์" ดูได้ ใครเห็น key ก็เปิดแบบได้ จึงควรตั้งสิทธิ์แชร์ให้เฉพาะคนที่เชิญ (เจ้าของโปรเจกต์เป็นคนตัดสินใจ)
+- **`message_id` จาก `devEui` + `fCnt` อาจชนกัน:** `ARCHITECTURE.md` (แบบ B) เสนอแบบนี้ แต่ frame counter เริ่มนับใหม่หลัง rejoin หรือ reboot ค่าใหม่จะถูกทิ้งเป็น duplicate ควรใช้ id ของ uplink จาก network server หรือเติมส่วนที่เปลี่ยนทุก session (ดู `docs/GW-1_GATEWAY_PLAN.md` หัวข้อ 1)
 - **กราฟจาก simulator ดูเป็นกลุ่มแท่ง:** ข้อมูล dev มีช่วงที่ simulator ไม่ได้รันหลายชั่วโมง กราฟจึงไม่ลากเส้นข้ามช่วงนั้น (ตั้งใจ ไม่ใช่บั๊ก)
 - **ไฟล์ generated ขึ้น modified:** `flutter pub get` เขียน `app/windows/flutter/generated_*` ใหม่ด้วย LF ทำให้ `git status` ขึ้น modified ทั้งที่เนื้อหาไม่เปลี่ยน แก้ได้ด้วย rule ใน `.gitattributes`
 
@@ -66,6 +67,10 @@
 - [ ] **V-2 หลักฐาน S1**
   ทำ: บันทึก screenshot ของ Dashboard, output ของ `pytest -v`, output ของ smoke test และ `ingest_counts` จาก /health
   เสร็จเมื่อ: ไฟล์หลักฐานอยู่ใน `docs/evidence/s1/`
+  สถานะ (11 พ.ย. 2569): ยังไม่มีโฟลเดอร์ `docs/evidence/s1/` ใน repo
+  - **ผลที่มีบันทึกเป็นข้อความ:** CHANGELOG และ NEXT_TASKS บันทึกไว้ว่า pytest ผ่าน 29 ข้อ, smoke test PASS และ V-1 ผ่าน
+  - **ไฟล์ชั่วคราวในเครื่องที่ใช้พัฒนา (ไม่อยู่ใน repo):** output ของ pytest และ smoke test จากคืนวันที่ 9 พ.ย. (ระหว่าง commit `799f2c3` ถึง `b35e569` ไม่ใช่ tag `v0.1.0` พอดี) และภาพ emulator ของ Dashboard รุ่น S1 แต่ `ingest_counts` ในไฟล์นั้นเป็น 0 ทั้งหมด เพราะเก็บก่อนส่งข้อมูล
+  - ควรสร้างหลักฐานใหม่ที่ tag `v0.1.0` ใน worktree แยก แล้วระบุ commit กับวันที่ในแต่ละไฟล์
 - [x] **APP-0 Android: อนุญาต HTTP ในเครือข่ายท้องถิ่น**
   ทำ: เพิ่ม `android:usesCleartextTraffic="true"` ใน `android/app/src/main/AndroidManifest.xml` (เฉพาะช่วง dev) และตรวจว่ามี permission `INTERNET`
   เสร็จเมื่อ: Android emulator ใช้ `--dart-define=API_BASE_URL=http://10.0.2.2:8000` แล้วเห็นข้อมูล
@@ -97,13 +102,24 @@
 - [ ] **BE-4 Farm / Plot / Device assignment** (S3) ทำ migration 0002 + CRUD + audit fields และผูก device กับ plot ตามช่วงเวลา
 - [ ] **BE-5 ตาราง latest** เมื่อ `sensor_readings` มีมากกว่า ~1 ล้านแถว หรือ `/dashboard/latest` ช้ากว่า 200 ms
 - [ ] **BE-6 รวมข้อมูลย้อนหลังเป็นช่วง** (ข้อเสนอจาก BE-1) เพิ่มพารามิเตอร์ เช่น `bucket=1h` ให้ History API ส่งค่าเฉลี่ย/ต่ำสุด/สูงสุดต่อช่วง เพื่อให้กราฟ 7 วันครอบคลุมทั้งช่วงแม้ข้อมูลเกิน 5000 ค่า และยังบอกได้ว่าแต่ละช่วงมีข้อมูลที่ไม่ใช่ `gateway` หรือไม่
+- [ ] **BE-7 Gateway ที่มีสิทธิ์และการเพิ่ม Field Node** (เสนอจาก GW-1 ทำหลังเลือกเส้นทาง)
+  - **กติกาของผลิตภัณฑ์:** เซิร์ฟเวอร์ต้องยืนยันว่า Gateway มีสิทธิ์ก่อนยอมให้เพิ่ม Field Node ใหม่
+  - **สิ่งที่ต้องทำ:** ที่ลงทะเบียน Gateway, หยุดเพิ่มอุปกรณ์อัตโนมัติสำหรับข้อมูล `source: "gateway"` (simulator และ test ยังเพิ่มอัตโนมัติได้), migration ที่มี downgrade และ test
+  - **ยังไม่ตัดสิน:** วิธีผูก node กับ Gateway และนิยามของ "มีสิทธิ์" ซึ่งขึ้นกับเส้นทาง ถ้าต้องใส่ตัวระบุ Gateway ใน topic หรือ payload ต้องทำตาม DATA_CONTRACT.md §6 (ดู `docs/GW-1_GATEWAY_PLAN.md` หัวข้อ 2)
 
 ## Gateway / IoT (ทำร่วมกับคนทำ Hardware)
 
 - [ ] **GW-1 เลือกเส้นทาง Gateway** ระหว่างแบบ A (serial bridge) หรือ B (LoRaWAN + ChirpStack) ตาม `docs/ARCHITECTURE.md`
   เสร็จเมื่อ: มีสคริปต์ bridge/adapter ที่ publish contract v1 ด้วย `source: "gateway"`, เก็บคิวเมื่อ MQTT หลุดแล้วส่งซ้ำ และ smoke test ผ่านด้วยข้อมูลจริง 1 node
-- [ ] **GW-2 Contract v1.1: link quality** เพิ่ม `link: {rssi, snr}` แบบไม่บังคับ เพื่อทดสอบระยะ 500 ม.–1 กม. ตามแผน
+  ความคืบหน้า (11 พ.ย. 2569): เขียนแผนแล้วที่ `docs/GW-1_GATEWAY_PLAN.md` ยังไม่ได้เลือกเส้นทางและยังไม่มีผลวัดระยะ
+  - **ในแผนมี:** สิ่งที่ backend รับได้ตอนนี้, ตารางเปรียบเทียบ serial LoRa กับ LoRaWAN, เกณฑ์ทดสอบ 500 ม.–1 กม. ตามแผนจัดซื้อ, checklist และคำถาม 12 ข้อสำหรับคนทำ Hardware
+  - **สิ่งที่รออยู่:** คำตอบจากคนทำ Hardware
+  - **เอกสารยังไม่ตรงกัน:** แผน Sprint S2 ใช้ serial bridge ส่วนแผนจัดซื้อให้ LoRaWAN เป็นหลัก
+- [ ] **GW-2 Contract v1.1: link quality** เพิ่ม `link: {rssi, snr}` แบบไม่บังคับ เพื่อทดสอบระยะ 500 ม.–1 กม. ตามแผน (แผนจัดซื้อขอ data rate, frame counter, แรงดันแบตเตอรี่ และ `gateway_id` ด้วย ให้ตัดสินพร้อม BE-7)
 - [ ] **GW-3 Device heartbeat topic** `agritwin/{env}/devices/{id}/status`
+- [ ] **GW-4 adapter แบบไม่มีวิทยุ (dry run)** ทำหลังตกลงเส้นทางและรูปแบบ frame หรือ codec กับคนทำ Hardware
+  - **ทำ:** อ่าน frame ตัวอย่างหรือ event ตัวอย่างจาก network server แล้วสร้าง contract v1 (`source: "gateway"`) publish เข้า broker ของเครื่องพัฒนา
+  - **เสร็จเมื่อ:** test ครอบคลุม accepted, duplicate, rejected, คิวตอน MQTT หลุด และ `message_id` ไม่ชนหลัง node reboot โดยไม่เปลี่ยน API contract
 
 ## Ops
 
