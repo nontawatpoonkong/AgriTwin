@@ -7,7 +7,8 @@ import 'package:http/http.dart' as http;
 import 'models.dart';
 
 /// A failed API call. [message] is short Thai text for the screen; [detail] keeps the technical
-/// reason (exception text, HTTP status, body) for the log and is never shown to the user.
+/// reason (exception type and text, HTTP status, the API's error detail) for the log, already
+/// passed through [redactForLog], and is never shown to the user.
 class ApiException implements Exception {
   const ApiException(this.message, {this.detail});
 
@@ -26,8 +27,22 @@ const unexpectedErrorMessage = 'เกิดข้อผิดพลาดที
 /// the screen. [where] names the caller in the log.
 String errorMessageFor(Object error, StackTrace stack, {required String where}) {
   if (error is ApiException) return error.message;
-  debugPrint('$where: unexpected error: $error\n$stack');
+  debugPrint('$where: unexpected error: ${redactForLog('$error')}\n$stack');
   return unexpectedErrorMessage;
+}
+
+final _urlCredentials = RegExp(r'://[^/\s@]*@');
+final _secretQueryValue =
+    RegExp(r'([?&][^=&\s]*(?:token|key|secret|pass|auth|sig)[^=&\s]*=)[^&\s]*', caseSensitive: false);
+
+/// [text] made safe for the developer log: `user:password@` in URLs and the values of query
+/// parameters whose names look like credentials (token, key, secret, password, auth, signature)
+/// become `***`, and anything longer than [maxLength] characters is cut.
+String redactForLog(String text, {int maxLength = 300}) {
+  final safe = text
+      .replaceAll(_urlCredentials, '://***@')
+      .replaceAllMapped(_secretQueryValue, (m) => '${m[1]}***');
+  return safe.length > maxLength ? '${safe.substring(0, maxLength)}…' : safe;
 }
 
 /// What the dashboard needs. Tests provide a fake implementation.
@@ -98,27 +113,40 @@ class AgriTwinApi implements DashboardSource, HistorySource {
     try {
       return fromJson(json);
     } on Object catch (e) {
-      throw _failure(uri, 'ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API', '$e');
+      throw _failure(uri, 'ข้อมูลจากเซิร์ฟเวอร์ไม่ตรงกับสัญญา API', _withoutSource(e));
     }
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
     final res = await _get(uri);
     if (res.statusCode != 200) {
-      final body = utf8.decode(res.bodyBytes, allowMalformed: true);
-      throw _failure(
-        uri,
-        'เซิร์ฟเวอร์ตอบกลับรหัส ${res.statusCode}',
-        'HTTP ${res.statusCode}: ${body.length > 300 ? '${body.substring(0, 300)}…' : body}',
-      );
+      throw _failure(uri, 'เซิร์ฟเวอร์ตอบกลับรหัส ${res.statusCode}', 'HTTP ${res.statusCode}, ${_errorBody(res)}');
     }
     try {
       // Decode bytes as UTF-8 explicitly: the server sends "°C" and may omit the charset.
       return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     } on Object catch (e) {
-      throw _failure(uri, 'อ่านข้อมูลจากเซิร์ฟเวอร์ไม่ได้', '$e');
+      throw _failure(uri, 'อ่านข้อมูลจากเซิร์ฟเวอร์ไม่ได้', _withoutSource(e));
     }
   }
+
+  /// What the log may say about an error response: the `detail` field of the API's own JSON
+  /// errors (FastAPI), otherwise only the size and content type. A page from a proxy or a Wi-Fi
+  /// login portal can hold anything, so its text is not copied.
+  static String _errorBody(http.Response res) {
+    try {
+      final json = jsonDecode(utf8.decode(res.bodyBytes));
+      if (json is Map<String, dynamic> && json.containsKey('detail')) return 'detail: ${json['detail']}';
+    } on Object {
+      // Not the API's JSON error format.
+    }
+    return '${res.bodyBytes.length} bytes of ${res.headers['content-type'] ?? 'unknown content type'}';
+  }
+
+  /// The exception without the text it failed on: a FormatException carries the response it was
+  /// parsing, which must not reach the log.
+  static String _withoutSource(Object e) =>
+      e is FormatException ? 'FormatException: ${e.message} (offset ${e.offset})' : '$e';
 
   Future<http.Response> _get(Uri uri) async {
     try {
@@ -131,10 +159,12 @@ class AgriTwinApi implements DashboardSource, HistorySource {
   }
 
   /// Logs the technical reason of a failed call (console of `flutter run`, or `adb logcat -s flutter`
-  /// on Android) and returns the exception whose short [message] the screens show.
+  /// on Android) and returns the exception whose short [message] the screens show. The URL and the
+  /// reason go through [redactForLog] first.
   ApiException _failure(Uri uri, String message, String detail) {
-    debugPrint('AgriTwinApi: GET $uri failed: $detail');
-    return ApiException(message, detail: detail);
+    final safeDetail = redactForLog(detail);
+    debugPrint('AgriTwinApi: GET ${redactForLog('$uri')} failed: $safeDetail');
+    return ApiException(message, detail: safeDetail);
   }
 
   /// GET is idempotent, so one connection-level failure is retried on a new connection.

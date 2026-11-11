@@ -29,7 +29,78 @@ void main() {
     expect(temp.value, 28.3);
   });
 
-  test('an HTTP error keeps the status code in the message and the response body in the log', () async {
+  group('redactForLog', () {
+    test('masks credentials in URLs and the values of credential-like query parameters', () {
+      expect(
+        redactForLog(
+          'GET https://agritwin:change-me@farm.test/api/v1/x?api_key=change-me&sensor_type=soil_moisture&limit=5000',
+        ),
+        'GET https://***@farm.test/api/v1/x?api_key=***&sensor_type=soil_moisture&limit=5000',
+      );
+    });
+
+    test('keeps ordinary text and cuts long text', () {
+      const url = 'http://10.0.2.2:8000/api/v1/devices/sim-node-01/readings?sensor_type=soil_moisture&limit=5000';
+      expect(redactForLog(url), url);
+      expect(redactForLog('x' * 1000), hasLength(301)); // 300 characters and "…"
+    });
+  });
+
+  test('a user name and password in the API address never reach the log or the exception', () async {
+    final api = AgriTwinApi(
+      baseUrl: 'http://agritwin:change-me@api.test',
+      client: MockClient((request) async => throw http.ClientException('Connection refused', request.url)),
+    );
+    ApiException? error;
+    final logs = await withCapturedLogs(() async {
+      try {
+        await api.fetchDashboard();
+      } on ApiException catch (e) {
+        error = e;
+      }
+    });
+    expect(logs.single, contains('GET http://***@api.test/api/v1/dashboard/latest failed'));
+    for (final text in [logs.single, error!.detail!]) {
+      expect(text, isNot(contains('change-me')));
+      expect(text, isNot(contains('agritwin:')));
+    }
+  });
+
+  test('an error page that is not the API\'s JSON is not copied into the log', () async {
+    final api = AgriTwinApi(
+      baseUrl: 'http://api.test',
+      client: MockClient((_) async => http.Response(
+            '<html><body>Wi-Fi login for the guest in room 1203</body></html>',
+            502,
+            headers: {'content-type': 'text/html'},
+          )),
+    );
+    final logs = await withCapturedLogs(() async {
+      await expectLater(
+        api.fetchDashboard(),
+        throwsA(isA<ApiException>().having((e) => e.message, 'message', 'เซิร์ฟเวอร์ตอบกลับรหัส 502')),
+      );
+    });
+    expect(logs.single, allOf(contains('HTTP 502'), contains('text/html')));
+    expect(logs.single, isNot(contains('room 1203')));
+  });
+
+  test('a 200 answer that is not JSON is not copied into the log either', () async {
+    final api = AgriTwinApi(
+      baseUrl: 'http://api.test',
+      client: MockClient((_) async => http.Response('<html>guest in room 1203</html>', 200)),
+    );
+    final logs = await withCapturedLogs(() async {
+      await expectLater(
+        api.fetchDashboard(),
+        throwsA(isA<ApiException>().having((e) => e.message, 'message', 'อ่านข้อมูลจากเซิร์ฟเวอร์ไม่ได้')),
+      );
+    });
+    expect(logs.single, contains('FormatException'));
+    expect(logs.single, isNot(contains('room 1203')));
+  });
+
+  test('an HTTP error keeps the status code in the message and the API\'s error detail in the log', () async {
     final api = AgriTwinApi(
       baseUrl: 'http://api.test',
       client: MockClient((_) async => http.Response('{"detail": "database unavailable"}', 500)),
