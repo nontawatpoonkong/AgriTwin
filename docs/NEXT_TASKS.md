@@ -63,9 +63,14 @@
   ทำ: `cd app` → `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000`
   เสร็จเมื่อ: analyze ได้ 0 issue (test ผ่านแล้ว 9/9) และหน้า Dashboard แสดงค่าจาก simulator พร้อมป้าย "ข้อมูลจำลอง"
   ผล (9 พ.ย. 2569): analyze 0 issue, test 9/9 และเจ้าของโปรเจกต์ยืนยันว่าหน้า Dashboard แสดงถูกต้อง
-- [ ] **V-2 หลักฐาน S1**
+- [x] **V-2 หลักฐาน S1**
   ทำ: บันทึก screenshot ของ Dashboard, output ของ `pytest -v`, output ของ smoke test และ `ingest_counts` จาก /health
   เสร็จเมื่อ: ไฟล์หลักฐานอยู่ใน `docs/evidence/s1/`
+  ผล (11 พ.ย. 2569): สร้างหลักฐานใหม่จาก detached worktree ที่ commit `125d912d13467b154c50c41c65e8a743e3ebc9ec`
+  โดยใช้ PostgreSQL/Mosquitto ชั่วคราวที่ bind เฉพาะ loopback และฐาน `agritwin_v2_demo` / `agritwin_v2_test`
+  แยกจากฐานพัฒนา: pytest 55 ข้อผ่าน (1 warning), Flutter analyze 0 issue, Flutter test ผ่าน 65 ข้อ,
+  smoke test ผ่านถึง REST API, `/health` หลังทดสอบเป็น accepted 16 / duplicate 10 / rejected 5 / errors 0
+  และ Dashboard release web build แสดงป้าย “ข้อมูลจำลอง” หลักฐานอยู่ใน `docs/evidence/s1/`
 - [x] **APP-0 Android: อนุญาต HTTP ในเครือข่ายท้องถิ่น**
   ทำ: เพิ่ม `android:usesCleartextTraffic="true"` ใน `android/app/src/main/AndroidManifest.xml` (เฉพาะช่วง dev) และตรวจว่ามี permission `INTERNET`
   เสร็จเมื่อ: Android emulator ใช้ `--dart-define=API_BASE_URL=http://10.0.2.2:8000` แล้วเห็นข้อมูล

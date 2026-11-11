@@ -1,0 +1,54 @@
+Commit: 125d912d13467b154c50c41c65e8a743e3ebc9ec
+Date: 2026-11-11 (Asia/Bangkok)
+
+Scope: scripts/smoke_test.py proves MQTT -> FastAPI ingest -> PostgreSQL -> REST API.
+It ends at the API and does NOT exercise Flutter. Flutter was verified separately; see flutter-2026-11-11.txt
+and dashboard-simulated-2026-11-11.png.
+
+===== Health before smoke =====
+{
+  "status": "ok",
+  "database": "up",
+  "mqtt": "connected",
+  "ingest_counts": {
+    "accepted": 0,
+    "duplicate": 0,
+    "rejected": 0,
+    "errors": 0
+  },
+  "server_time": "2026-11-11T13:51:41.017703Z"
+}
+
+===== Smoke run 1 =====
+health: {'status': 'ok', 'database': 'up', 'mqtt': 'connected', 'ingest_counts': {'accepted': 0, 'duplicate': 0, 'rejected': 0, 'errors': 0}, 'server_time': '2026-11-11T13:51:44.477523Z'}
+published soil_moisture=56.7 to agritwin/v2demo/devices/smoke-test-node/telemetry
+PASS: value travelled MQTT -> API -> PostgreSQL -> REST
+
+===== Simulator: five rounds with bad + duplicate =====
+connected to mqtt://127.0.0.1:51883  (Ctrl+C to stop)
+2026-11-11T13:51:58Z  agritwin/v2demo/devices/sim-node-01/telemetry  seq=1  soil_moisture=48.4%
+2026-11-11T13:51:58Z  agritwin/v2demo/devices/sim-node-02/telemetry  seq=1  soil_moisture=45.6%
+sent 1 INVALID message to agritwin/v2demo/devices/sim-node-01/telemetry (should land in ingest_rejects)
+2026-11-11T13:51:59Z  agritwin/v2demo/devices/sim-node-01/telemetry  seq=2  soil_moisture=48.2%
+2026-11-11T13:51:59Z  agritwin/v2demo/devices/sim-node-02/telemetry  seq=2  soil_moisture=44.3%
+sent 1 INVALID message to agritwin/v2demo/devices/sim-node-01/telemetry (should land in ingest_rejects)
+2026-11-11T13:51:59Z  agritwin/v2demo/devices/sim-node-01/telemetry  seq=3  soil_moisture=48.1%
+2026-11-11T13:51:59Z  agritwin/v2demo/devices/sim-node-02/telemetry  seq=3  soil_moisture=45.3%
+sent 1 INVALID message to agritwin/v2demo/devices/sim-node-01/telemetry (should land in ingest_rejects)
+2026-11-11T13:52:00Z  agritwin/v2demo/devices/sim-node-01/telemetry  seq=4  soil_moisture=48.3%
+2026-11-11T13:52:00Z  agritwin/v2demo/devices/sim-node-02/telemetry  seq=4  soil_moisture=45.5%
+sent 1 INVALID message to agritwin/v2demo/devices/sim-node-01/telemetry (should land in ingest_rejects)
+2026-11-11T13:52:00Z  agritwin/v2demo/devices/sim-node-01/telemetry  seq=5  soil_moisture=47.4%
+2026-11-11T13:52:00Z  agritwin/v2demo/devices/sim-node-02/telemetry  seq=5  soil_moisture=44.9%
+sent 1 INVALID message to agritwin/v2demo/devices/sim-node-01/telemetry (should land in ingest_rejects)
+
+Two additional one-round simulator runs refreshed the screenshot data. Their readings were:
+- 2026-11-11T13:57:04Z: sim-node-01 48.4%, sim-node-02 45.6%
+- 2026-11-11T13:59:32Z: sim-node-01 48.4%, sim-node-02 45.6%
+
+===== Smoke run 2: refresh smoke-test-node before screenshot =====
+health: {'status': 'ok', 'database': 'up', 'mqtt': 'connected', 'ingest_counts': {'accepted': 15, 'duplicate': 10, 'rejected': 5, 'errors': 0}, 'server_time': '2026-11-11T14:00:02.588975Z'}
+published soil_moisture=81.1 to agritwin/v2demo/devices/smoke-test-node/telemetry
+PASS: value travelled MQTT -> API -> PostgreSQL -> REST
+
+Final counts are in health-2026-11-11.json.
