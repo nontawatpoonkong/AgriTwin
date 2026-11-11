@@ -17,6 +17,12 @@
   - เกณฑ์ทดสอบ 500 ม.–1 กม. ตามแผนจัดซื้อ
   - checklist และคำถาม 12 ข้อสำหรับคนทำ Hardware
   - เพิ่มงาน BE-7 (ยืนยัน Gateway ที่มีสิทธิ์ก่อนเพิ่ม Field Node) และ GW-4 (adapter แบบ dry run) ใน NEXT_TASKS
+- หลักฐานการสาธิต Vertical Slice 1 ใน `docs/evidence/s1/` จากโค้ดที่ commit `125d912d13467b154c50c41c65e8a743e3ebc9ec` ทุกค่ามาจาก simulator และ smoke test (`source` เป็น `simulator` และ `test`) ไม่ใช่ผลวัดจาก Field Node หรือ LoRa จริง และยังไม่ได้ทดสอบกับ Home Gateway หรือฮาร์ดแวร์จริง (V-2) ชุดหลักฐานมี:
+  - ภาพ Dashboard จาก release web build ที่แสดงป้าย "ข้อมูลจำลอง"
+  - output ของ backend tests (`pytest -v`) และ Flutter tests (`flutter analyze`, `flutter test`)
+  - output ของ MQTT smoke test (MQTT → FastAPI → PostgreSQL → REST API) และ `/api/v1/health` หลังทดสอบ
+  - เวอร์ชันของเครื่องมือและสภาพแวดล้อมแยกที่ใช้เก็บหลักฐาน
+- `docs/DEMO_RUNBOOK.md` คู่มือเดโมสั้น: ขอบเขตที่ต้องบอกผู้ชมก่อนเริ่ม, การเตรียมระบบแยกจากฐานพัฒนา, preflight, ลำดับเดโม 3–5 นาที และ fallback เมื่อระบบ live ล้ม ซึ่งเปิดไฟล์หลักฐานและบอกผู้ชมว่าเป็นหลักฐานที่บันทึกไว้ ไม่ใช่ค่าวัดสด (V-2)
 
 ### Changed
 - UI ของ Dashboard และหน้ากราฟจัดตาม Figma "AgriTwin — Mobile UI Concept | Research Proposal" ของเจ้าของโปรเจกต์ (Screen 01 Home, Screen 04 Sensor): ค่าใน `tokens.dart` มาจากเฟรม Design Tokens ของไฟล์นั้นแทนค่าชั่วคราว (ยังไม่ใช่ Kaset App ซึ่งรอภาพอ้างอิงในงาน UI-1) ส่วนที่ Figma มีแต่ระบบยังไม่มีข้อมูล เช่น พยากรณ์อากาศ ตัวเลือกฟาร์ม แบตเตอรี่/RSSI และแถบเมนูล่าง ไม่ได้ทำ และไม่ใส่ข้อมูลตัวอย่างแทน (UI-2)
@@ -46,9 +52,17 @@
   - ปุ่ม "ลองใหม่" บน Dashboard ส่งคำขอทันทีนอกรอบ poll และโหลดข้อมูลกลับมาก่อนถึงรอบ poll ถัดไป (ทดสอบด้วยโหมดเครื่องบินของ emulator)
   - ปุ่ม "ลองใหม่" ในการ์ดกราฟใช้งานได้
   - เมื่อ API กลับมา การ์ดแนวโน้มเติมช่วงที่ขาดเอง
+- 11 พ.ย. 2569 (V-2): เก็บหลักฐานใน `docs/evidence/s1/` ด้วยข้อมูลจำลองเท่านั้น ในสภาพแวดล้อมแยกที่ PostgreSQL และ Mosquitto ชั่วคราว bind เฉพาะ `127.0.0.1` (ฐาน `agritwin_v2_demo` / `agritwin_v2_test`) และไม่ได้แตะฐานพัฒนา ผลที่ได้:
+  - `pytest -v` ผ่าน 55 ข้อ (1 warning ของ Starlette) และ migration down/up ผ่าน
+  - `flutter analyze` 0 issue และ `flutter test` 65 ข้อ
+  - smoke test PASS (MQTT → FastAPI → PostgreSQL → REST API) และ `/health` หลังทดสอบเป็น accepted 16 / duplicate 10 / rejected 5 / errors 0
+  - ข้อมูลในฐานเดโม: simulator 84 ค่า, test 2 ค่า, gateway 0 ค่า
+  - Dashboard จาก release web build แสดงอุปกรณ์ออนไลน์ 3/3 พร้อมป้าย "ข้อมูลจำลอง"
+- 12 พ.ย. 2569 (V-2 ก่อน merge): รันซ้ำบนโค้ดของ PR #1 ซึ่งเหมือน `main` ที่ `50e4534` และ commit `125d912` ทุกไฟล์ยกเว้นเอกสาร ผลคือ `pytest -v` ผ่าน 55 ข้อ (1 warning เดิม) บน `agritwin_test`, `flutter analyze` 0 issue และ `flutter test` 65 ข้อ
 
 ### ข้อจำกัดที่พบเพิ่ม
 - ดูหัวข้อ "ปัญหาที่รู้แล้ว" ใน `docs/NEXT_TASKS.md`: `localhost` ช้าบน Windows, มือถือจริงต้องรัน uvicorn ด้วย `--host 0.0.0.0`, พอร์ต Docker เปิดบนทุก interface, deprecation warning ของ Starlette และ release build ยังใช้ `http://` ได้
+- หลักฐาน V-2: ภาพ Dashboard ขอบขวาขาดเพราะภาพแคบกว่าความกว้างที่หน้าเว็บจัด layout (ค่าที่อ้างในหลักฐานยังอ่านได้) และจับภาพใหม่ให้ตรงผลเดิมไม่ได้ เพราะฐานเดโมอยู่ใน tmpfs ที่ถูกลบไปพร้อม container แล้ว จึงคงภาพเดิมไว้โดยไม่แก้ไข ส่วน release web build เตือนว่าหา font `CupertinoIcons` ไม่พบ แต่ build สำเร็จ ดู `docs/evidence/s1/README.md` และงาน V-2 ใน `docs/NEXT_TASKS.md`
 
 ## v0.1.0 — 2026-11-09 — Vertical Slice 1 (simulated data)
 

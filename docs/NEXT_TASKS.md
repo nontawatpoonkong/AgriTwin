@@ -72,6 +72,9 @@
   แยกจากฐานพัฒนา: pytest 55 ข้อผ่าน (1 warning), Flutter analyze 0 issue, Flutter test ผ่าน 65 ข้อ,
   smoke test ผ่านถึง REST API, `/health` หลังทดสอบเป็น accepted 16 / duplicate 10 / rejected 5 / errors 0
   และ Dashboard release web build แสดงป้าย “ข้อมูลจำลอง” หลักฐานอยู่ใน `docs/evidence/s1/`
+  ข้อจำกัด: ภาพ Dashboard ขอบขวาขาด และจับใหม่ให้ตรงผลเดิมไม่ได้เพราะฐานเดโมถูกลบไปพร้อม container แล้ว
+  (ดูหมายเหตุใน `docs/evidence/s1/README.md`) ส่วน release web build เตือนว่าหา font `CupertinoIcons` ไม่พบ
+  แต่ build สำเร็จ ยังไม่ได้แก้
 - [x] **APP-0 Android: อนุญาต HTTP ในเครือข่ายท้องถิ่น**
   ทำ: เพิ่ม `android:usesCleartextTraffic="true"` ใน `android/app/src/main/AndroidManifest.xml` (เฉพาะช่วง dev) และตรวจว่ามี permission `INTERNET`
   เสร็จเมื่อ: Android emulator ใช้ `--dart-define=API_BASE_URL=http://10.0.2.2:8000` แล้วเห็นข้อมูล
