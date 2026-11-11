@@ -34,10 +34,8 @@ class DashboardController extends ChangeNotifier {
       data = await _source.fetchDashboard();
       error = null;
       lastSuccessAt = DateTime.now();
-    } on ApiException catch (e) {
-      error = e.message;
-    } on Object catch (e) {
-      error = 'เกิดข้อผิดพลาด: $e';
+    } on Object catch (e, stack) {
+      error = errorMessageFor(e, stack, where: 'DashboardController');
     } finally {
       loading = false;
       _notify();

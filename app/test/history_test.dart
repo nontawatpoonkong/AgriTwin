@@ -106,6 +106,26 @@ void main() {
     });
   });
 
+  group('ReadingHistory.extendedWith', () {
+    test('appends only readings after the newest one and drops those before the window', () {
+      final newer = ReadingHistory.fromJson(
+        historyJson(values: [43.0, 44.0, 45.5], start: DateTime.utc(2026, 11, 10, 9, 20)), // 09:20 again, 09:30, 09:40
+      );
+      final merged = _history().extendedWith(newer, since: DateTime.utc(2026, 11, 10, 9, 5));
+
+      expect(merged.readings.map((r) => r.measuredAt), [
+        for (final m in [10, 20, 30, 40]) DateTime.utc(2026, 11, 10, 9, m),
+      ]);
+      expect(merged.readings.map((r) => r.value), [41.5, 43.0, 44.0, 45.5]);
+      expect(merged.deviceId, 'sim-node-01');
+    });
+
+    test('an empty history takes every newer reading in the window', () {
+      final merged = _history(values: []).extendedWith(_history(), since: DateTime.utc(2026, 11, 9));
+      expect(merged.readings.map((r) => r.value), [40.0, 41.5, 43.0]);
+    });
+  });
+
   group('splitAtGaps', () {
     test('breaks the line where data is missing for much longer than usual', () {
       final readings = [for (final m in [0, 10, 20, 200, 210]) _reading(m)];
@@ -180,14 +200,23 @@ void main() {
       expect(find.byType(HistoryChart), findsNothing);
     });
 
-    testWidgets('error state offers a retry', (tester) async {
+    testWidgets('error state shows the short reason only and offers a retry', (tester) async {
       final source = FakeHistorySource((call) async {
-        if (call == 0) throw const ApiException('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (test)');
+        if (call == 0) {
+          throw const ApiException(
+            'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้',
+            detail: 'ClientException with SocketException: Connection refused, '
+                'uri=http://10.0.2.2:8000/api/v1/devices/sim-node-01/readings?sensor_type=soil_moisture',
+          );
+        }
         return _history();
       }, deviceFails: true);
       await tester.pumpWidget(_page(source));
       await tester.pump();
       expect(find.text('โหลดข้อมูลย้อนหลังไม่ได้'), findsOneWidget);
+      expect(find.text('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'), findsOneWidget);
+      expect(find.textContaining('SocketException'), findsNothing);
+      expect(find.textContaining('sensor_type='), findsNothing);
 
       await tester.tap(find.text('ลองใหม่'));
       await tester.pump();
@@ -255,10 +284,10 @@ void main() {
       expect(find.text('มีค่าผิดปกติ 1 ค่า ทำเครื่องหมายไว้ในกราฟ'), findsOneWidget);
     });
 
-    testWidgets('keeps the chart and shows a banner when a refresh fails', (tester) async {
+    testWidgets('keeps the chart and shows the reason in a banner when a refresh fails', (tester) async {
       final source = FakeHistorySource((call) async {
         if (call == 0) return _history();
-        throw const ApiException('เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)');
+        throw const ApiException('เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)', detail: 'no response within 8 s');
       });
       await tester.pumpWidget(_page(source));
       await tester.pump();
@@ -266,8 +295,20 @@ void main() {
       await tester.tap(find.byTooltip('รีเฟรช'));
       await tester.pump();
 
+      expect(find.text('เซิร์ฟเวอร์ไม่ตอบสนอง (หมดเวลา)'), findsOneWidget);
       expect(find.textContaining('กำลังแสดงข้อมูลล่าสุด'), findsOneWidget);
+      expect(find.textContaining('no response'), findsNothing);
       expect(find.byType(HistoryChart), findsOneWidget);
+    });
+
+    testWidgets('an unexpected error shows a generic Thai message; the details go to the log', (tester) async {
+      final logs = await withCapturedLogs(() async {
+        await tester.pumpWidget(_page(FakeHistorySource((_) async => throw const FormatException('bad number'))));
+        await tester.pump();
+      });
+      expect(find.text(unexpectedErrorMessage), findsOneWidget);
+      expect(find.textContaining('bad number'), findsNothing);
+      expect(logs.join('\n'), allOf(contains('SensorHistoryController'), contains('bad number')));
     });
   });
 

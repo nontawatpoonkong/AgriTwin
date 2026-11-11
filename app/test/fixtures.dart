@@ -1,13 +1,30 @@
 import 'package:agritwin_app/data/api_client.dart';
 import 'package:agritwin_app/data/models.dart';
+import 'package:flutter/foundation.dart';
+
+/// Runs [body] with `debugPrint` writing into the returned list instead of the console, and
+/// restores it afterwards (also when [body] throws).
+Future<List<String>> withCapturedLogs(Future<void> Function() body) async {
+  final logs = <String>[];
+  final original = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) => logs.add(message ?? '');
+  try {
+    await body();
+  } finally {
+    debugPrint = original;
+  }
+  return logs;
+}
 
 /// JSON shaped exactly like GET /api/v1/dashboard/latest (captured from the real API).
+/// [measuredAt] is the time of both readings.
 Map<String, dynamic> dashboardJson({
   String status = 'online',
   String source = 'simulator',
   double soilMoisture = 41.2,
   String quality = 'ok',
   bool withDevice = true,
+  String measuredAt = '2026-11-09T13:35:28Z',
 }) =>
     {
       'server_time': '2026-11-09T13:35:40.208065Z',
@@ -27,7 +44,7 @@ Map<String, dynamic> dashboardJson({
                 'unit': '%',
                 'quality': quality,
                 'source': source,
-                'measured_at': '2026-11-09T13:35:28Z',
+                'measured_at': measuredAt,
               },
               {
                 'sensor_type': 'air_temperature',
@@ -35,7 +52,7 @@ Map<String, dynamic> dashboardJson({
                 'unit': '°C',
                 'quality': 'ok',
                 'source': source,
-                'measured_at': '2026-11-09T13:35:28Z',
+                'measured_at': measuredAt,
               },
             ],
           },
@@ -52,13 +69,15 @@ class FakeSource implements DashboardSource {
   Future<DashboardLatest> fetchDashboard() => handler(calls++);
 }
 
-/// JSON shaped like GET /api/v1/devices/{id}/readings (BE-1): soil_moisture every 10 minutes.
+/// JSON shaped like GET /api/v1/devices/{id}/readings (BE-1): soil_moisture every 10 minutes
+/// from [start] (default 10 Nov 2026 09:00 UTC).
 Map<String, dynamic> historyJson({
   List<double> values = const [40.0, 41.5, 43.0],
   String source = 'simulator',
   List<String>? qualities,
   bool truncated = false,
   int limit = 5000,
+  DateTime? start,
 }) =>
     {
       'device_id': 'sim-node-01',
@@ -77,7 +96,7 @@ Map<String, dynamic> historyJson({
             'quality': qualities?[i] ?? 'ok',
             'source': source,
             'measured_at':
-                DateTime.utc(2026, 11, 10, 9).add(Duration(minutes: 10 * i)).toIso8601String(),
+                (start ?? DateTime.utc(2026, 11, 10, 9)).add(Duration(minutes: 10 * i)).toIso8601String(),
           },
       ],
     };
