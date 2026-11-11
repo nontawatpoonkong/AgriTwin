@@ -119,7 +119,8 @@
 - [ ] **GW-3 Device heartbeat topic** `agritwin/{env}/devices/{id}/status`
 - [ ] **GW-4 adapter แบบไม่มีวิทยุ (dry run)** ทำหลังตกลงเส้นทางและรูปแบบ frame หรือ codec กับคนทำ Hardware
   - **ทำ:** อ่าน frame ตัวอย่างหรือ event ตัวอย่างจาก network server แล้วสร้าง contract v1 (`source: "gateway"`) publish เข้า broker ของเครื่องพัฒนา
-  - **เสร็จเมื่อ:** test ครอบคลุม accepted, duplicate, rejected, คิวตอน MQTT หลุด และ `message_id` ไม่ชนหลัง node reboot โดยไม่เปลี่ยน API contract
+  - **เสร็จเมื่อ:** test ครอบคลุม accepted, duplicate, rejected, คิวตอน MQTT หลุด, `message_id` ไม่ชนหลัง node reboot และ `ts` ไม่เปลี่ยนเมื่อส่งจากคิว โดยไม่เปลี่ยน API contract
+  - **เรื่องเวลา:** ถ้า node ไม่ส่งเวลาที่วัดหรืออายุของค่า `ts` จะเป็นเวลาที่ Gateway รับ ซึ่งเป็นค่าประมาณ ต้องบันทึกไว้ (ดู `docs/GW-1_GATEWAY_PLAN.md` หัวข้อ "เวลาที่วัด กับ เวลาที่รับ")
 
 ## Ops
 
